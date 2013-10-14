@@ -1,0 +1,21 @@
+config 'dhcp6c' 'basic'
+	option 'enabled' '1'				# 1 = enabled; 0 = disabled
+	option 'interface' 'wan'			# This is the interface the DHCPv6 client will run on
+	
+	option 'pd' '1'					# Prefix Delegation
+	option 'rapid_commit' '1'			# Rapid Commit
+
+	# Script to run when a reply is received
+	option 'script' '/usr/bin/dhcp6c-state'
+
+# Define one or more interfaces on which prefixes should be assigned
+config 'interface' 'loopback'
+	option 'enabled' '1'				# 1 = enabled; 0 = disabled
+	option 'sla_id' '0'				# Site level aggregator identifier specified in decimal (subnet)
+	option 'sla_len' '4'				# Site level aggregator length (64 - size of prefix being delegated)
+							# e.g. /60 from ISP -> 64 - 60 = 4
+
+config 'interface' 'lan'
+	option 'enabled' '0'
+	option 'sla_id' '1'
+	option 'sla_len' '4'

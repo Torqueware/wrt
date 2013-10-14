@@ -1,0 +1,11 @@
+config interface
+	option interface	'lan'
+	option ignore		1
+
+config prefix
+	option interface	'lan'
+	option ignore		1
+
+config rdnss
+	option interface	'lan'
+	option ignore		1
