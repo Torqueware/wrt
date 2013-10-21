@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
+EXTRA_DIST = autogen.sh examples
+
 SUBDIRS = src      \
-          examples \
-		  scripts
-#          doc      \
-#          man      \
-#          scripts
+		  scripts  \
+          doc      \
+          man
