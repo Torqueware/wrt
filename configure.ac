@@ -36,14 +36,17 @@ AC_CHECK_HEADERS([cstdint])
 
 # A listing of all makefiles in the project is REQUIRED below
 AC_CONFIG_FILES([Makefile
+                   doc/Makefile
+                   man/Makefile
                    src/Makefile
                      src/include/Makefile
                      src/lib/Makefile
                        src/lib/ssh/Makefile
                        src/lib/wrt/Makefile
-                   examples/Makefile
                    scripts/Makefile
-                     scripts/cert/Makefile])
+                     scripts/cert/Makefile
+                     scripts/config/Makefile
+                     scripts/radio/Makefile])
 
 # Outputs the files below
 CXXFLAGS="$CXXFLAGS -std=c++0x"
