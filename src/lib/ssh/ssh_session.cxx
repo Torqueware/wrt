@@ -31,12 +31,15 @@
 namespace ssh {
 
 Session::Session() {
-  _c_session = ssh_new();
+  ssh_init();
+  c_session_ = ssh_new();
+  ssh_set_blocking(c_session_, 1);
+  ssh_blocking_flush(c_session_, 1);
 }
 
 Session::~Session() {
-  ssh_free(_c_session);
-  _c_session=NULL;
+  ssh_free(c_session_);
+  c_session_=NULL;
 }
 
   /**
@@ -46,8 +49,8 @@ Session::~Session() {
    * throws: SshException on error
    **/
 void Session::setOption(enum ssh_options_e type, std::string option) {
-  if(ssh_options_set(_c_session, type, option.c_str()) == SSH_ERROR) {
-    throw SshException(_c_session);
+  if(ssh_options_set(c_session_, type, option.c_str()) == SSH_ERROR) {
+    throw SshException(c_session_);
   }
 }
 
@@ -58,8 +61,8 @@ void Session::setOption(enum ssh_options_e type, std::string option) {
    * throws: SshException on error
    **/
 void Session::setOption(enum ssh_options_e type, const char *option) {
-  if(ssh_options_set(_c_session, type, option) == SSH_ERROR) {
-    throw SshException(_c_session);
+  if(ssh_options_set(c_session_, type, option) == SSH_ERROR) {
+    throw SshException(c_session_);
   }
 }
 
@@ -70,8 +73,8 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * throws: SshException on error
    **/
   void Session::setOption(enum ssh_options_e type, long int option) {
-    if(ssh_options_set(_c_session, type, &option) == SSH_ERROR) {
-      throw SshException(_c_session);
+    if(ssh_options_set(c_session_, type, &option) == SSH_ERROR) {
+      throw SshException(c_session_);
     }
   }
 
@@ -82,8 +85,8 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * throws: SshException on error
    **/
   void Session::setOption(enum ssh_options_e type, void *option) {
-    if(ssh_options_set(_c_session, type, option) == SSH_ERROR) {
-      throw SshException(_c_session);
+    if(ssh_options_set(c_session_, type, option) == SSH_ERROR) {
+      throw SshException(c_session_);
     }
   }
 
@@ -92,8 +95,8 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * see ssh_connect
    */
   void Session::connect() {
-    if(ssh_connect(_c_session) == SSH_ERROR) {
-      throw SshException(_c_session);
+    if(ssh_connect(c_session_) == SSH_ERROR) {
+      throw SshException(c_session_);
     }
   }
 
@@ -103,10 +106,10 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * see ssh_userauth_autopubkey
    */
   int Session::userauthPublickeyAuto() {
-    int rtn = ssh_userauth_publickey_auto(_c_session, NULL, NULL);
+    int rtn = ssh_userauth_publickey_auto(c_session_, NULL, NULL);
     
     if(rtn == SSH_ERROR) {
-      throw SshException(_c_session);
+      throw SshException(c_session_);
     }
     
     return rtn;
@@ -119,10 +122,10 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * see ssh_userauth_password
    */
   int Session::userauthPassword(const char *password) {
-    int rtn = ssh_userauth_password(_c_session, NULL, password);
+    int rtn = ssh_userauth_password(c_session_, NULL, password);
     
     if(rtn == SSH_ERROR) {
-      throw SshException(_c_session);
+      throw SshException(c_session_);
     }
 
     return rtn;
@@ -136,10 +139,10 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * see ssh_userauth_try_pubkey
    */
   int Session::userauthTryPublickey(ssh_key pubkey) {
-    int rtn = ssh_userauth_try_publickey(_c_session, NULL, pubkey);
+    int rtn = ssh_userauth_try_publickey(c_session_, NULL, pubkey);
     
     if(rtn == SSH_ERROR) {
-      throw SshException(_c_session);
+      throw SshException(c_session_);
     }
     
     return rtn;
@@ -152,10 +155,10 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * see ssh_userauth_pubkey
    */
   int Session::userauthPublickey(ssh_key privkey) {
-    int rtn = ssh_userauth_publickey(_c_session, NULL, privkey);
+    int rtn = ssh_userauth_publickey(c_session_, NULL, privkey);
     
     if(rtn == SSH_ERROR) {
-     throw SshException(_c_session);
+     throw SshException(c_session_);
     }
     
     return rtn;
@@ -167,20 +170,22 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * see ssh_userauth_list
    */
   int Session::getAuthList() {
-    int rtn = ssh_userauth_list(_c_session, NULL);
+    int rtn = ssh_userauth_list(c_session_, NULL);
     
     if(rtn == SSH_ERROR) {
-      throw SshException(_c_session);
+      throw SshException(c_session_);
     }
     
     return rtn;
   }
 
+
+
   /**
    * Disconnects from the SSH server and closes connection
    **/
   void Session::disconnect() {
-    ssh_disconnect(_c_session);
+    ssh_disconnect(c_session_);
   }
 
   /**
@@ -188,16 +193,16 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * returns: pointer to the message, or NULL. Do not free the pointer.
    **/
   const char* Session::getDisconnectMessage() {
-    const char *msg = ssh_get_disconnect_message(_c_session);
+    const char *msg = ssh_get_disconnect_message(c_session_);
     return msg;
   }
 
   const char* Session::getError() {
-    return ssh_get_error(_c_session);
+    return ssh_get_error(c_session_);
   }
 
   int Session::getErrorCode() {
-    return ssh_get_error_code(_c_session);
+    return ssh_get_error_code(c_session_);
   }
 
   /* getSocket description
@@ -207,7 +212,7 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    *          one of the two file descriptors being used
    **/
   socket_t Session::getSocket() {
-    return ssh_get_fd(_c_session);
+    return ssh_get_fd(c_session_);
   }
 
   /**
@@ -215,7 +220,7 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * returns: the issue banner. This is generally a MOTD from server
    **/
   std::string Session::getIssueBanner() {
-    char *banner = ssh_get_issue_banner(_c_session);
+    char *banner = ssh_get_issue_banner(c_session_);
     
     std::string str = std::string(banner);
     std::free(banner);
@@ -228,7 +233,7 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * returns: openssh version code
    **/
   int Session::getOpensshVersion() {
-    return ssh_get_openssh_version(_c_session);
+    return ssh_get_openssh_version(c_session_);
   }
 
   /**
@@ -236,7 +241,7 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * returns: the SSH protocol version
    **/
   int Session::getVersion() {
-    return ssh_get_version(_c_session);
+    return ssh_get_version(c_session_);
   }
 
   /**
@@ -245,10 +250,10 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * returns: Integer value depending on the knowledge of the server key
    **/
   int Session::isServerKnown() {
-    int rtn = ssh_is_server_known(_c_session);
+    int rtn = ssh_is_server_known(c_session_);
     
     if(rtn == SSH_ERROR) {
-      throw SshException(_c_session);
+      throw SshException(c_session_);
     }
     
     return rtn;
@@ -259,8 +264,8 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * throws: SshException on error
    **/
   void Session::optionsCopy(const Session &source) {
-    if(ssh_options_copy(source._c_session, &_c_session) == SSH_ERROR) {
-      throw SshException(_c_session);
+    if(ssh_options_copy(source.c_session_, &c_session_) == SSH_ERROR) {
+      throw SshException(c_session_);
     }
   }
 
@@ -270,8 +275,8 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * param:  file configuration file name
    **/
   void Session::optionsParseConfig(const char *file) {
-    if(ssh_options_parse_config(_c_session, file) == SSH_ERROR) {
-      throw SshException(_c_session);
+    if(ssh_options_parse_config(c_session_, file) == SSH_ERROR) {
+      throw SshException(c_session_);
     }
   }
 
@@ -279,7 +284,7 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * Silently disconnect from remote host
    **/
   void Session::silentDisconnect() {
-    ssh_silent_disconnect(_c_session);
+    ssh_silent_disconnect(c_session_);
   }
 
   /**
@@ -287,31 +292,14 @@ void Session::setOption(enum ssh_options_e type, const char *option) {
    * throws: SshException on error
    **/
   int Session::writeKnownhost() {
-    int rtn = ssh_write_knownhost(_c_session);
+    int rtn = ssh_write_knownhost(c_session_);
     
     if(rtn == SSH_ERROR) {
-      throw SshException(_c_session);
+      throw SshException(c_session_);
     }
 
     return rtn;
   }
-
-SFTPSession::SFTPSession(Session &session) {
-  _c_sftp = sftp_new(session._c_session);
-
-  if(!_c_sftp) {
-  std::string error = "Error opening sftp channel: ";
-  error += ssh_get_error(session._c_session);
-    throw SshException(error);
-  }
-}
-
-SFTPSession::~SFTPSession() {
-  sftp_free(_c_sftp);
-  _c_sftp = NULL;
-}
-
-
 
 } //namespace ssh
 

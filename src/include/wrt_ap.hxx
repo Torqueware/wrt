@@ -28,10 +28,13 @@ class AccessPoint {
 
 public:
   AccessPoint() = default;
-  AccessPoint(std::string mac_address);
+  AccessPoint(std::string MACAddress);
 
   std::string& MAC();
+  //DEPRICATE
   std::string getMAC();
+
+  std::string& Name();
 
   std::string& IPv4Address();
   //DEPRICATE
@@ -41,7 +44,11 @@ public:
   //DEPRICATE
   std::string getIPv6Address();
 
+  static std::string FormatMAC(std::string MACAddress);
+  static std::string MACtoEUI64(std::string MACAddress);
+
 private:
+  std::string ap_name;
   std::string mac_address;
 
   std::string ipv4_address;

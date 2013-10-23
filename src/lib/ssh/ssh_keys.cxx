@@ -8,42 +8,37 @@
  *                                                                     *
  **********************************************************************/
 
-#include "keys.hpp"
+#include <ssh_keys.hxx>
 
 namespace ssh {
-  class Key {
-    public:
-      Key() {
-        c_key = ssh_key_new();
-      }
+Key::Key(Session &session) {
+  ssh_get_publickey(session.c_session_, &c_key);
+  c_hash_length = ssh_get_pubkey_hash(session.c_session_, &c_hash);
+}
 
-      ~Key() {
-        ssh_key_clean(c_key);
-        c_key = nullptr;
-      }
+Key::Key(ssh_session c_session) {
+  ssh_get_publickey(c_session, &c_key);
+  ssh_get_pubkey_hash(c_session, &c_hash);    
+}
 
-    protected:
-      ssh_key c_key;
+Key::~Key() {
+  ssh_key_free(c_key);
+  c_key = nullptr;
 
-      /* No copy constructor -> Override the = operator. */
-      Key(const Key &);
-      Key& operator = (const Key &);
-  };
+  free(c_hash);
+  c_hash = nullptr;
+}
 
-  class PrivateKey : public Key {
-    public:
+std::string Key::getHash() {
+  std::string CPPhexa = nullptr;
 
-      /* TODO: ERROR CHECKING */
-      void Import(Session session,
-       std::string file, std::string passphrase) {
-        ssh_key_import_private(c_key, session.getCSession(),
-         file.c_str(), passphrase.c_str());
-      }
-    
-      ssh_key getKey() {
-        return(c_key);
-      }
-    }
-  };
+  if (c_hash) {
+    const char *hexa = ssh_get_hexa(c_hash, c_hash_length);
+    CPPhexa = std::string(hexa);
+    free((void *)hexa);
+  }
+
+  return CPPhexa;
+}
 
 } //namespace ssh

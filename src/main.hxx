@@ -24,6 +24,7 @@
 #include <libconfig.h++>
 
 #include <wrt_ap.hxx>
+#include <ssh_keys.hxx>
 #include <ssh_exception.hxx>
 #include <ssh_session.hxx>
 
@@ -71,6 +72,7 @@ const char        kAddList[]           = "add",
                   //Config file field tags, and structure tags
 const char        kLocalUser[]         = "local_user",
                   kRemoteUser[]        = "remote_user",
+                  kCertificates[]      = "cert_dir",
                   kSSID[]              = "SSID",
                   kCrypto[]            = "encryption",
                   kPassword[]          = "secret",
@@ -83,10 +85,7 @@ const char        kLocalUser[]         = "local_user",
 //Global flags for program control - only EVER set when parsing command line
 std::string ConfigFile  = kConfigDirectory + kConfigFile;
 
-int  LogLevel           = kDefaultLogLevel,
-     
-     AddIndex           = 0,
-     RemoveIndex        = 0;
+int  LogLevel           = kDefaultLogLevel;
 
 bool Push               = false,
      Force              = false,
@@ -131,8 +130,10 @@ APList&            GetAPList(libconfig::Config &settings);
 
 //Main program function block 
 void ListAPs(libconfig::Config& config);
-void AddAP(libconfig::Config& config, char *name);
-void RemoveAP(libconfig::Config& config, char *name);
+void AddAPConfig(libconfig::Config& config, APList &APInfo);
+void AddAPKey(libconfig::Config& config, APList &APInfo);
+void RemoveAPConfig(libconfig::Config& config, APList &APInfo);
+void RemoveAPKey(libconfig::Config& config, APList &APInfo);
 void PushConfig(libconfig::Config& config, wrt::AccessPoint& AP);
 
 //Command line prompt block

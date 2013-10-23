@@ -25,7 +25,6 @@
 
 #include <libssh/libssh.h>
 #include <libssh/server.h>
-#include <libssh/sftp.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -34,26 +33,24 @@
 #include <iostream>
 
 #include <ssh_exception.hxx>
+#include <ssh_keys.hxx>
 
 namespace ssh {
 
-class Key;
 class Channel;
-class SFTPSession;
 
 class Session {
   friend class Key;
   friend class Channel;
-  friend class SFTPSession;
 
 public:
   Session();
   ~Session();
  
   void setOption(enum ssh_options_e type, std::string option);
-  void setOption(enum ssh_options_e type, const char *option);
-  void setOption(enum ssh_options_e type, long int option); 
-  void setOption(enum ssh_options_e type, void *option); 
+  void setOption(enum ssh_options_e type, const char *option); //TODO DEPRICATE
+  void setOption(enum ssh_options_e type, long int option); //TODO DEPRICATE
+  void setOption(enum ssh_options_e type, void *option); //TODO DEPRICATE
   
   void optionsCopy(const Session &source);
   void optionsParseConfig(const char *file);
@@ -84,43 +81,13 @@ public:
   int writeKnownhost();
 
 private:
-  ssh_session _c_session;
+  ssh_session c_session_;
   ssh_session getCSession();
 
   /* No copy constructor, no = operator */
   Session(const Session &);
   Session& operator = (const Session &);
 }; //class Session
-
-class SFTPSession {
-public:
-  friend class Session;
-
-  SFTPSession(Session &session);
-  ~SFTPSession();
-
-private:
-  sftp_session _c_sftp;
-  sftp_session getSFTPSession();
-
-  SFTPSession(const SFTPSession &);
-  SFTPSession& operator = (const SFTPSession &);
-}; // class SFTP
-
-/*class SCPSession {
-public:
-  friend class Key;
-
-  SCPSession();
-  ~SCPSession();
-
-private:
-  scp_session c_scp;
-  scp_session getSCPSession();
-
-  SCPSession(const SCPSession &);
-  SCPSession& operator = (const SCPSesion &);
-} // class SFTP */
 
 } //namespace ssh
 
