@@ -51,13 +51,14 @@ libconfig::Setting& ParseCommandLineOptions(int argc, char* argv[]) {
         case 'a':
           Add = true;
           addList.add(libconfig::Setting::TypeString) = argv[optind - 1];
-          AddIndex = optind - 1;
+          if (optind == argc) { Usage(); }
+          addList.add(libconfig::Setting::TypeString) = argv[optind];
+          optind++;
           break;
 
         case 'r':
           Remove = true;
           removeList.add(libconfig::Setting::TypeString) = argv[optind - 1];
-          RemoveIndex = optind - 1;
           break;
 
         case 'p':
@@ -139,17 +140,7 @@ libconfig::Setting& ParseCommandLineOptions(int argc, char* argv[]) {
       std::cout << "\tForce  flag: " << Force << std::endl;
       std::cout << "\tList   flag: " << List << std::endl;
       std::cout << "\tAdd    flag: " << Add << std::endl;
-      
-      if (LogLevel > kVerboseLogLevel) {
-        std::cout << "\t\tAddIndex flag: " << AddIndex << std::endl;
-      }
-
       std::cout << "\tRemove flag: " << Remove << std::endl;
-      
-      if (LogLevel > kVerboseLogLevel) {
-        std::cout << "\t\tRemoveIndex flag: " << RemoveIndex << std::endl;
-      }
-      
       std::cout << std::endl;
     }
 
@@ -230,7 +221,9 @@ APList& GetAddList(libconfig::Setting& parse) {
       libconfig::Setting &list = parse[kAddList];
 
       for (int i = 0, size = list.getLength(); i < size; i++) {
-         pendingAdditions[list[i]] = AccessPoint(list[i]);
+        std::string name = list[i], mac = list[i];
+         pendingAdditions[name] = AccessPoint(name, mac);
+         i++;
       }
 
     } catch (...) {
@@ -251,7 +244,9 @@ APList& GetRemoveList(libconfig::Setting& parse) {
       libconfig::Setting &list = parse[kRemoveList];
 
       for (int i = 0, size = list.getLength(); i < size; i++) {
-         pendingRemovals[list[i]] = AccessPoint(list[i]);
+        std::string name = list[i];
+
+        pendingRemovals[name] = AccessPoint(name);
       }
 
     } catch (...) {
@@ -278,7 +273,7 @@ APList& GetAPList(libconfig::Config &config) {
         std::string name, mac;
 
         if (AP.lookupValue(kAPName, name) && AP.lookupValue(kAPMAC, mac)) {
-          APs[name] = AccessPoint(mac);
+          APs[name] = AccessPoint(name, mac);
         }
       }
   
@@ -308,12 +303,14 @@ if (LogLevel >= kDefaultLogLevel) {
     int item = 1;
 
     for(auto AP : APs) {
-      std::cout << item++ << ": " << AP.first << ": <TODO type> MAC "
-                << AP.second.getMAC() << std::endl
-                << "\tIPv4 " << AP.second.getIPv4Address() << std::endl
-                << "\tIPv6 " << AP.second.getIPv6Address() << std::endl;
-    }
+      AccessPoint thisAP = AP.second;
 
+      std::cout << item++ << ": " << thisAP.getName()
+                << ": " << thisAP.getType() << std::endl
+                << "\tMAC " << thisAP.getMAC() << std::endl
+                << "\tIPv4 " << thisAP.autoIPv4() << std::endl
+                << "\tIPv6 " << thisAP.autoIPv6() << std::endl;
+    }
     std::cout << std::endl;
   
   } catch(...) {
@@ -323,45 +320,48 @@ if (LogLevel >= kDefaultLogLevel) {
   return;
 }
 
-/* Adds AP to the config file, and connects to exchange certificates */
+/* Adds AP to the config file */
 void AddAPConfig(libconfig::Config &config, AccessPoint &APInfo) {
-  std::string already_exists = APInfo.getMAC() + " already exists!",
+  std::string already_exists = APInfo.getName() + " already exists!",
              failure_message = "AddAP(libconfig::Config &, "
                                "AccessPoint &APInfo *) failed.";
 
   if (LogLevel >= kDefaultLogLevel) {
-    std::cout << "wrt: Adding " << APInfo.Name()
+    std::cout << "wrt: Adding " << APInfo.getName()
               << " to config file:" << std::endl;
   }
 
   try {
-    try {
 
-      libconfig::Setting &APList = config.lookup(kAPList);
-      ssh::Session session;
+    libconfig::Setting &APList = config.lookup(kAPList);
+    ssh::Session session;
 
-      for (int i = 0, size = APList.getLength(); i < size; i++) {
-        std::string MAC = APList[i][kAPMAC];
-        if (MAC == APInfo.getMAC()) {
-          throw(std::runtime_error(already_exists));
-        }
+    for (int i = 0, size = APList.getLength(); i < size; i++) {
+      std::string name = APList[i][kAPName],
+                  mac  = APList[i][kAPMAC];
+
+      if (name == APInfo.getName() || mac == APInfo.getMAC()) {
+        throw(std::runtime_error(already_exists));
       }
-
-      libconfig::Setting &AP = APList.add(libconfig::Setting::TypeGroup);
-      std::string ipv6 = APInfo.getIPv6Address();
-
-      AP.add(kAPName, libconfig::Setting::TypeString) = "test_me";
-      AP.add(kAPMAC,  libconfig::Setting::TypeString) = APInfo.getMAC();
-      AP.add(kAPIPv4, libconfig::Setting::TypeString) = "nope";
-      AP.add(kAPIPv6, libconfig::Setting::TypeString) = APInfo.getIPv6Address();
-
-      WriteConfigFile(config);
-
-    } catch(...) {
-      std::throw_with_nested(std::runtime_error(failure_message));
     }
-  } catch (const std::exception &exception) {
-    print_exception(exception);
+
+    libconfig::Setting &AP = APList.add(libconfig::Setting::TypeGroup);
+    std::string name = APInfo.getName(),
+                mac  = APInfo.getMAC(),
+                ipv4 = APInfo.autoIPv4(),
+                ipv6 = APInfo.autoIPv6();
+
+    AP.add(kAPName, libconfig::Setting::TypeString) = name;
+    AP.add(kAPMAC,  libconfig::Setting::TypeString) = mac;
+    AP.add(kAPIPv4, libconfig::Setting::TypeString) = ipv4;
+    AP.add(kAPIPv6, libconfig::Setting::TypeString) = ipv6;
+
+    WriteConfigFile(config);
+
+  } catch(std::runtime_error const& e) {
+    print_exception(e);
+  } catch(...) {
+    std::throw_with_nested(std::runtime_error(failure_message));
   }
 
   return;
@@ -372,7 +372,7 @@ void AddAPKey(libconfig::Config &config, AccessPoint &AP) {
                                 " &, AccessPoint &) failed.";
 
   if (LogLevel >= kDefaultLogLevel) {
-    std::cout << "wrt: Performing handshake with " << AP.Name()
+    std::cout << "wrt: Performing handshake with " << AP.getName()
               << " to update known_hosts file:" << std::endl;
   }
 
@@ -383,10 +383,10 @@ void AddAPKey(libconfig::Config &config, AccessPoint &AP) {
 
 
     //SSH Session initial setup
-    if(AP.IPv4Address().empty()) { //TODO: make this default to 6 later
-      KeyExchange.setOption(SSH_OPTIONS_HOST, AP.IPv6Address());
+    if(AP.getIPv4().empty()) { //TODO: make this default to 6 later
+      KeyExchange.setOption(SSH_OPTIONS_HOST, AP.autoIPv6());
     } else { //should not execute right now
-      KeyExchange.setOption(SSH_OPTIONS_HOST, AP.IPv4Address());
+      KeyExchange.setOption(SSH_OPTIONS_HOST, AP.getIPv4());
     }
    
     KeyExchange.setOption(SSH_OPTIONS_LOG_VERBOSITY, &LogLevel);
@@ -407,7 +407,7 @@ void AddAPKey(libconfig::Config &config, AccessPoint &AP) {
           std::string input;
 
           ssh::Key k = ssh::Key(KeyExchange);
-          std::cout << "wrt: '" << AP.Name() << "' public key hash: "
+          std::cout << "wrt: '" << AP.getName() << "' public key hash: "
                     << k.getHash() << std::endl;
           do {
             std::cout << "Add key to known hosts [Y/n]? ";
@@ -455,7 +455,7 @@ void RemoveAPConfig(libconfig::Config& config, AccessPoint &APInfo) {
   std::string error_message = "RemoveAPConfig() failed";
 
   if (LogLevel >= kDefaultLogLevel) {
-    std::cout << "wrt: Removing " << APInfo.Name()
+    std::cout << "wrt: Removing " << APInfo.getName()
               << " from config file." << std::endl;
   }
 
@@ -478,7 +478,7 @@ void RemoveAPKey(libconfig::Config& config, AccessPoint &APInfo) {
   std::string error_message = "RemoveAPKey() failed";
 
   if (LogLevel >= kDefaultLogLevel) {
-    std::cout << "wrt: Removing " << APInfo.Name()
+    std::cout << "wrt: Removing " << APInfo.getName()
               << " key from known_hosts file." << std::endl;
   }
 
@@ -509,51 +509,6 @@ void PushConfig(libconfig::Config& config, AccessPoint& AP) {
                remote_error     = "Remote server error";
 
   try {
-    // std::string  remote_user    = settings.lookup(CFG_REMOTE_USER),
-    //              cert_directory = settings.lookup(CFG_CERT_DIR),
-    //              ip4            = target.IPv4Address(),
-    //              ip6            = target.IPv6Address();
-    
-    // if (ip4.empty() && ip6.empty()) {
-    //   throw std::runtime_error(no_ip_addr);
-    // }
-
-    // //SSH Session initial setup
-    // if(ip4.empty()) { //TODO: make this default to 6 later
-    //   session.setOption(SSH_OPTIONS_HOST, target.IPv6Address().c_str());
-    // } else { //should not execute right now
-    //   session.setOption(SSH_OPTIONS_HOST, ip4.c_str());
-    // }
-   
-    // session.setOption(SSH_OPTIONS_LOG_VERBOSITY, &LogLevel);
-    // session.setOption(SSH_OPTIONS_USER, remote_user.c_str());
-    // session.setOption(SSH_OPTIONS_SSH_DIR, cert_directory.c_str());
-    
-    // //SSH Session connect
-    // session.connect();
-    // session.userauthPublickeyAuto();
-
-    // switch (session.isServerKnown()) {
-    //   case SSH_SERVER_FILE_NOT_FOUND:
-    //   case SSH_SERVER_NOT_KNOWN:
-    //     session.writeKnownhost();
-    //   case SSH_SERVER_KNOWN_OK:
-    //     break; 
-
-    //   case SSH_SERVER_KNOWN_CHANGED:
-    //     throw std::runtime_error(host_key_changed);
-
-    //   case SSH_SERVER_FOUND_OTHER:
-    //     throw std::runtime_error(found_other_host);
-      
-    //   case SSH_SERVER_ERROR:
-    //     throw std::runtime_error(remote_error);
-      
-    //   default:
-    //     throw std::runtime_error(std::string("default"));
-    // }
-
-    // session.disconnect();
 
   } catch (const std::runtime_error &exception) {
     print_exception(exception);

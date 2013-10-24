@@ -25,40 +25,76 @@
 namespace wrt {
 
 class AccessPoint {
-
 public:
+  enum class Type { none,
+                    tl_wr703n,
+                    tl_mr3020,
+                    wrt54g,
+                    whr_hp_g300n, };
+
   AccessPoint() = default;
+  AccessPoint(std::string Name, std::string MACAddress);
+  AccessPoint(const char* Name, const char* MACAddress);
+  AccessPoint(std::string Name, std::string MacAddress, AccessPoint::Type Type);
+  AccessPoint(const char* Name, const char* MACAddress, AccessPoint::Type Type);
   AccessPoint(std::string MACAddress);
+  AccessPoint(const char* MACAddress);
 
-  std::string& MAC();
-  //DEPRICATE
+  bool hasType();
+  bool hasName();
+  AccessPoint::Type getRawType();
+
+
+  std::string getName();
   std::string getMAC();
+  std::string getType();
 
-  std::string& Name();
+  std::string autoIPv4();
+  std::string autoIPv6();
 
-  std::string& IPv4Address();
+  std::string getIPv4();
+  std::string getIPv6();
+
   //DEPRICATE
-  std::string getIPv4Address();
-  
-  std::string& IPv6Address();
-  //DEPRICATE
-  std::string getIPv6Address();
+  std::string IPv4Address();
+  std::string IPv6Address();
 
-  static std::string FormatMAC(std::string MACAddress);
-  static std::string MACtoEUI64(std::string MACAddress);
+  //Comparator
+  int compare(AccessPoint const& ap);
+
+  //Static utility functions
+  static void FormatMAC(std::string& MACtoFormat);
+  static void MACtoEUI64(std::string& MACtoMutate);
+  static std::string TypeToString(AccessPoint::Type Type);
+
+  bool operator == (AccessPoint const& ap) {
+    return (bool) !compare(ap);
+  }
+
+  bool operator != (AccessPoint const& ap) {
+    return (bool) compare(ap);
+  }
+
+  bool operator < (AccessPoint const& ap) {
+    return (bool) compare(ap) < 0;
+  }
+
+  bool operator > (AccessPoint const& ap) {
+    return (bool) compare(ap) > 0;
+  }
+
+
 
 private:
-  std::string ap_name;
-  std::string mac_address;
-
-  std::string ipv4_address;
-  std::string link_local_ipv4_address;
-      
-  std::string ipv6_address;
-  std::string link_local_ipv6_address;
+  AccessPoint::Type ap_type_;
+  std::string       ap_name_;
+  std::string       mac_address_;
+  std::string       ipv4_address_;
+  std::string       link_local_ipv4_address_;
+  std::string       ipv6_address_;
+  std::string       link_local_ipv6_address_;
 
 };
 
 }
-
 #endif

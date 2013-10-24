@@ -15,163 +15,219 @@
 
 namespace wrt {
 
-AccessPoint::AccessPoint(std::string MACAddress) {
-  if(!MACAddress.empty()) {
-    this->mac_address = FormatMAC(MACAddress);
-    this->ap_name     = this->mac_address;
+AccessPoint::AccessPoint(std::string Name, std::string MACAddress) {
+  ap_type_     = Type::none;
+  ap_name_     = Name;
 
-    this->link_local_ipv6_address = MACtoEUI64(this->mac_address);
-    // //this is where the fun stops
-    // std::stringstream ss(std::ios_base::in |
-    //                       std::ios_base::out |
-    //                        std::ios_base::ate);
-    
-    // ss << std::uppercase << mac_address;
-    // ss >> this->mac_address;
+  mac_address_ = MACAddress;
+  FormatMAC(mac_address_);
 
-    // //clear the stream
-    // ss.str(std::string(""));
-    // ss.clear();
-    
-    // *
-    //  * What is being done here: the construction of a link-local
-    //  * IPv6 address from the MAC address of a given access point.
-    //  *
-    //  * To better understand stateless IPv6 link-local addressing,
-    //  * please read RFC 4291.
-    //  *
-    //  * These addresses are ideal because they cannot leave the local
-    //  * network - assuming sanity (RFC conformance).
-    //  *
-    // ss << "fe80::" << mac_address.at(0) << std::hex
-    //    << (std::strtoul(mac_address.c_str() + 1, NULL, 16) | 0x2)
-    //    << std::dec << std::nouppercase << mac_address.substr(3, 5)
-    //    << "ff:fe" << mac_address.substr(9, 5)
-    //    << mac_address.substr(15, 2);
-    
-    // ss >> this->link_local_ipv6_address;
-    
-    // /* Convert all letters to lower case in the
-    //  * ipv6 link local address */
-    // std::transform(this->link_local_ipv6_address.begin(),
-    //                this->link_local_ipv6_address.end(),
-    //                this->link_local_ipv6_address.begin(),
-    //                (int (*)(int))std::tolower);
-  }
+  link_local_ipv6_address_ = mac_address_;
+  MACtoEUI64(link_local_ipv6_address_);
 }
 
+AccessPoint::AccessPoint(const char* Name, const char* MACAddress) {
+  ap_type_     = Type::none;
+  ap_name_     = std::string(Name);
+
+  mac_address_ = std::string(MACAddress);
+  FormatMAC(mac_address_);
+
+  link_local_ipv6_address_ = mac_address_;
+  MACtoEUI64(link_local_ipv6_address_);
+}
+
+AccessPoint::AccessPoint(std::string Name,
+  std::string MACAddress, AccessPoint::Type Type) {
+  ap_type_     = Type;
+  ap_name_     = Name;
+
+  mac_address_ = MACAddress;
+  FormatMAC(mac_address_);
+
+  link_local_ipv6_address_ = mac_address_;
+  MACtoEUI64(link_local_ipv6_address_);
+}
+
+AccessPoint::AccessPoint(const char* Name,
+  const char* MACAddress, AccessPoint::Type Type) {
+  ap_type_     = Type;
+  ap_name_     = std::string(Name);
+
+  mac_address_ = std::string(MACAddress);
+  FormatMAC(mac_address_);
+
+  link_local_ipv6_address_ = mac_address_;
+  MACtoEUI64(link_local_ipv6_address_);
+}
+
+AccessPoint::AccessPoint(std::string MACAddress) {
+  ap_type_     = Type::none;
+  mac_address_ = MACAddress;
+  FormatMAC(MACAddress);
+
+  ap_name_                 = mac_address_;
+  link_local_ipv6_address_ = mac_address_;
+  MACtoEUI64(link_local_ipv6_address_);
+}
+
+AccessPoint::AccessPoint(const char* MACAddress) {
+  ap_type_     = Type::none;
+  mac_address_ = std::string(MACAddress);
+  FormatMAC(mac_address_);
+  
+  ap_name_                 = mac_address_;
+  link_local_ipv6_address_ = mac_address_;
+  MACtoEUI64(link_local_ipv6_address_);
+}
+
+bool AccessPoint::hasType() {
+  return ap_type_ != AccessPoint::Type::none;
+}
+
+AccessPoint::Type AccessPoint::getRawType() {
+  return ap_type_;
+}
+
+bool AccessPoint::hasName() {
+  return ap_name_ != mac_address_;
+}
+
+std::string AccessPoint::getName() {
+  return ap_name_;
+}
   /**
    * Returns the MAC address of the AP
    **/
 std::string AccessPoint::getMAC() {
-  return this->mac_address;
+  return mac_address_;
 }
 
-std::string& AccessPoint::MAC() {
-  return this->mac_address;
+std::string AccessPoint::getType() {
+  return TypeToString(ap_type_);
 }
 
-std::string& AccessPoint::Name() {
-  return this->ap_name;
-}
-
-  /**
-   * Returns the IPv4 address of the AP (nope)
-   **/
-std::string AccessPoint::getIPv4Address() {
-  if(this->ipv4_address.empty()) {
-    return this->link_local_ipv4_address;
+std::string AccessPoint::autoIPv4() {
+  if(ipv4_address_.empty()) {
+    return link_local_ipv4_address_;
   }
         
-  return this->ipv4_address;
+  return ipv4_address_;
 }
 
-std::string& AccessPoint::IPv4Address() {
-  if(this->ipv4_address.empty()) {
-    return this->link_local_ipv4_address;
+std::string AccessPoint::autoIPv6() {
+  if(ipv6_address_.empty()) {
+    return link_local_ipv6_address_;
   }
         
-  return this->ipv4_address;
+  return ipv4_address_;
 }
 
-  /**
-   * Returns the IPv6 address of the AP
-   **/
-std::string AccessPoint::getIPv6Address() {
-  if(this->ipv6_address.empty()) {
-    return this->link_local_ipv6_address;
+std::string AccessPoint::getIPv4() {
+  return ipv4_address_;
+}
+
+//DEPRICATE
+std::string AccessPoint::IPv4Address() {
+  if(ipv4_address_.empty()) {
+    return link_local_ipv4_address_;
   }
         
-  return this->ipv6_address;
+  return ipv4_address_;
 }
 
+std::string AccessPoint::getIPv6() {
+  return ipv6_address_;
+}
 
-std::string& AccessPoint::IPv6Address() {
-  if(this->ipv6_address.empty()) {
-    return this->link_local_ipv6_address;
+//DEPRICATE
+std::string AccessPoint::IPv6Address() {
+  if(ipv6_address_.empty()) {
+    return link_local_ipv6_address_;
   }
         
-  return this->ipv6_address;
+  return ipv6_address_;
 }
 
-std::string AccessPoint::FormatMAC(std::string MACAddress) {
-  std::string MAC;
-
-  if (MACAddress.empty()) {
-    return MAC;
+int AccessPoint::compare(AccessPoint const& ap) {
+  if(ap_name_ == mac_address_) {
+    return mac_address_.compare(ap.mac_address_);
   }
 
-  //this is where the fun stops
-  std::stringstream ss(std::ios_base::in | 
-    std::ios_base::out | std::ios_base::ate);
+  return ap_name_.compare(ap.ap_name_);
+}
+
+void AccessPoint::FormatMAC(std::string& MACtoFormat) {
+  if (MACtoFormat.empty()) {
+    MACtoFormat = std::string("00:00:00:00:00:00");
+
+  } else {
+
+    //this is where the fun stops
+    std::stringstream ss(std::ios_base::in | 
+      std::ios_base::out | std::ios_base::ate);
     
-  ss << std::uppercase << MACAddress;
-  ss >> MAC;
-
-  // //clear the stream
-  // ss.str(std::string(""));
-  // ss.clear();
-
-  return MAC;
+    ss << std::uppercase << MACtoFormat;
+    ss >> MACtoFormat;
+  }
+  
+  return;
 }
 
-std::string AccessPoint::MACtoEUI64(std::string MACAddress) {
-  std::string EUI64;
+void AccessPoint::MACtoEUI64(std::string& MACtoMutate) {
+  if(MACtoMutate.empty()) {
+    MACtoMutate="fe80::02:00:00:ff:fe:00:00:00";
 
-  if(MACAddress.empty()) {
-    return EUI64;
+  } else {
+
+    //this is where the fun stops
+    std::stringstream ss(std::ios_base::in | 
+      std::ios_base::out | std::ios_base::ate);
+    
+    /**
+     * What is being done here: the construction of a link-local
+     * IPv6 address from the MAC address of a given access point.
+     *
+     * To better understand stateless IPv6 link-local addressing,
+     * please read RFC 4291.
+     *
+     * These addresses are ideal because they cannot leave the local
+     * network - assuming sanity (RFC conformance).
+     **/
+    ss << "fe80::" << MACtoMutate.at(0) << std::hex
+       << (std::strtoul(MACtoMutate.c_str() + 1, NULL, 16) | 0x2)
+       << std::dec << std::nouppercase << MACtoMutate.substr(3, 5)
+       << "ff:fe" << MACtoMutate.substr(9, 5)
+       << MACtoMutate.substr(15, 2);
+    
+    ss >> MACtoMutate;
+    
+    /* Convert all letters to lower case in the
+     * ipv6 link local address */
+    std::transform(MACtoMutate.begin(),
+                   MACtoMutate.end(),
+                   MACtoMutate.begin(),
+                   (int (*)(int))std::tolower);
   }
 
-  //this is where the fun stops
-  std::stringstream ss(std::ios_base::in | 
-    std::ios_base::out | std::ios_base::ate);
-  
-  /**
-   * What is being done here: the construction of a link-local
-   * IPv6 address from the MAC address of a given access point.
-   *
-   * To better understand stateless IPv6 link-local addressing,
-   * please read RFC 4291.
-   *
-   * These addresses are ideal because they cannot leave the local
-   * network - assuming sanity (RFC conformance).
-   **/
-  ss << "fe80::" << MACAddress.at(0) << std::hex
-     << (std::strtoul(MACAddress.c_str() + 1, NULL, 16) | 0x2)
-     << std::dec << std::nouppercase << MACAddress.substr(3, 5)
-     << "ff:fe" << MACAddress.substr(9, 5)
-     << MACAddress.substr(15, 2);
-  
-  ss >> EUI64;
-  
-  /* Convert all letters to lower case in the
-   * ipv6 link local address */
-  std::transform(EUI64.begin(),
-                 EUI64.end(),
-                 EUI64.begin(),
-                 (int (*)(int))std::tolower);
+  return;
+}
 
-  return EUI64;
+std::string AccessPoint::TypeToString(AccessPoint::Type Type) {
+  switch(Type) {
+    case AccessPoint::Type::none:
+      return "none";
+    case AccessPoint::Type::tl_wr703n:
+      return "TL-WR703N";
+    case AccessPoint::Type::tl_mr3020:
+      return "TL-MR3020";
+    case AccessPoint::Type::wrt54g:
+      return "WRT54G";
+    case AccessPoint::Type::whr_hp_g300n:
+      return "WHR-HP-G300N";
+    default:
+      return "unknown";
+  }
 }
 
 } //namespace wrt
