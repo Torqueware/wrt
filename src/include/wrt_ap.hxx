@@ -54,6 +54,8 @@ public:
 
   std::string getIPv4();
   std::string getIPv6();
+  void        setIPv4(std::string address);
+  void        setIPv6(std::string address);
 
   //DEPRICATE
   std::string IPv4Address();

@@ -220,8 +220,8 @@ APList& GetAddList(libconfig::Setting& parse) {
       
       libconfig::Setting &list = parse[kAddList];
 
-      for (int i = 0, size = list.getLength(); i < size; i++) {
-        std::string name = list[i], mac = list[i];
+      for (int i = 0, size = list.getLength(); i < size - 1; i++) {
+        std::string name = list[i], mac = list[i+1];
          pendingAdditions[name] = AccessPoint(name, mac);
          i++;
       }
@@ -270,11 +270,17 @@ APList& GetAPList(libconfig::Config &config) {
     
       for(int i = 0; i < listCount; ++i) {
         const libconfig::Setting &AP = list[kAPList][i];
-        std::string name, mac;
+        std::string name = list[kAPName],
+                    mac  = list[kAPMAC],
+                    ipv4 = list[kAPIPv4],
+                    ipv6 = list[kAPIPv6];
 
-        if (AP.lookupValue(kAPName, name) && AP.lookupValue(kAPMAC, mac)) {
+        // if (AP.lookupValue(kAPName, name) 
+        //     && AP.lookupValue(kAPMAC, mac)) {
           APs[name] = AccessPoint(name, mac);
-        }
+          APs[name].setIPv4(ipv4);
+          APs[name].setIPv6(ipv6);
+        // }
       }
   
     } catch(...) {
@@ -321,40 +327,34 @@ if (LogLevel >= kDefaultLogLevel) {
 }
 
 /* Adds AP to the config file */
-void AddAPConfig(libconfig::Config &config, AccessPoint &APInfo) {
-  std::string already_exists = APInfo.getName() + " already exists!",
-             failure_message = "AddAP(libconfig::Config &, "
-                               "AccessPoint &APInfo *) failed.";
+void AddAPConfig(libconfig::Config &config, AccessPoint &AP) {
+  std::string already_exists = "\"" + AP.getName() + "\" already exists!",
+             failure_message = "AddAPConfig(libconfig::Config &, "
+                               "AccessPoint &AP) failed.";
 
   if (LogLevel >= kDefaultLogLevel) {
-    std::cout << "wrt: Adding " << APInfo.getName()
-              << " to config file:" << std::endl;
+    std::cout << "wrt: Adding \"" << AP.getName()
+              << "\" to config file:" << std::endl;
   }
 
   try {
 
     libconfig::Setting &APList = config.lookup(kAPList);
-    ssh::Session session;
 
     for (int i = 0, size = APList.getLength(); i < size; i++) {
       std::string name = APList[i][kAPName],
                   mac  = APList[i][kAPMAC];
 
-      if (name == APInfo.getName() || mac == APInfo.getMAC()) {
+      if (name == AP.getName() || mac == AP.getMAC()) {
         throw(std::runtime_error(already_exists));
       }
     }
 
-    libconfig::Setting &AP = APList.add(libconfig::Setting::TypeGroup);
-    std::string name = APInfo.getName(),
-                mac  = APInfo.getMAC(),
-                ipv4 = APInfo.autoIPv4(),
-                ipv6 = APInfo.autoIPv6();
-
-    AP.add(kAPName, libconfig::Setting::TypeString) = name;
-    AP.add(kAPMAC,  libconfig::Setting::TypeString) = mac;
-    AP.add(kAPIPv4, libconfig::Setting::TypeString) = ipv4;
-    AP.add(kAPIPv6, libconfig::Setting::TypeString) = ipv6;
+    libconfig::Setting &NewEntry = APList.add(libconfig::Setting::TypeGroup);
+    NewEntry.add(kAPName, libconfig::Setting::TypeString) = AP.getName();
+    NewEntry.add(kAPMAC,  libconfig::Setting::TypeString) = AP.getMAC();
+    NewEntry.add(kAPIPv4, libconfig::Setting::TypeString) = AP.autoIPv4();
+    NewEntry.add(kAPIPv6, libconfig::Setting::TypeString) = AP.autoIPv6();
 
     WriteConfigFile(config);
 
@@ -392,6 +392,7 @@ void AddAPKey(libconfig::Config &config, AccessPoint &AP) {
     KeyExchange.setOption(SSH_OPTIONS_LOG_VERBOSITY, &LogLevel);
     KeyExchange.setOption(SSH_OPTIONS_USER, user);
     KeyExchange.setOption(SSH_OPTIONS_SSH_DIR, cert);
+    KeyExchange.setOption(SSH_OPTIONS_TIMEOUT, 5);
     
     //SSH Session connect
     KeyExchange.connect();
@@ -451,12 +452,12 @@ void AddAPKey(libconfig::Config &config, AccessPoint &AP) {
 }
 
 /* Removes AP from config file, and removes public key from knownhosts */
-void RemoveAPConfig(libconfig::Config& config, AccessPoint &APInfo) {
+void RemoveAPConfig(libconfig::Config& config, AccessPoint &AP) {
   std::string error_message = "RemoveAPConfig() failed";
 
   if (LogLevel >= kDefaultLogLevel) {
-    std::cout << "wrt: Removing " << APInfo.getName()
-              << " from config file." << std::endl;
+    std::cout << "wrt: Removing \"" << AP.getName()
+              << "\" from config file." << std::endl;
   }
 
   try {
@@ -627,7 +628,7 @@ int main(int argc, char* argv[]) {
     } else if (Remove) {
       for (auto AP : GetRemoveList(pendingNodes)) {
         RemoveAPConfig(config, AP.second);
-        RemoveAPKey(config, AP.second);
+//        RemoveAPKey(config, AP.second);
       }
     
     } else if (Push) {

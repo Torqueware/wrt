@@ -127,26 +127,16 @@ std::string AccessPoint::getIPv4() {
   return ipv4_address_;
 }
 
-//DEPRICATE
-std::string AccessPoint::IPv4Address() {
-  if(ipv4_address_.empty()) {
-    return link_local_ipv4_address_;
-  }
-        
-  return ipv4_address_;
-}
-
 std::string AccessPoint::getIPv6() {
   return ipv6_address_;
 }
 
-//DEPRICATE
-std::string AccessPoint::IPv6Address() {
-  if(ipv6_address_.empty()) {
-    return link_local_ipv6_address_;
-  }
-        
-  return ipv6_address_;
+void AccessPoint::setIPv4(std::string address) {
+  ipv4_address_ = address;
+}
+
+void AccessPoint::setIPv6(std::string address) {
+  ipv6_address_ = address;
 }
 
 int AccessPoint::compare(AccessPoint const& ap) {

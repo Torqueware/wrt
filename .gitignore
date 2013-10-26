@@ -3,9 +3,8 @@
 Makefile.in
 
 # Sublime text 3
-
-wrt.sublime-project
-wrt.sublime-workspace
+#wrt.sublime-project
+#wrt.sublime-workspace
 
 # http://www.gnu.org/software/autoconf
 
