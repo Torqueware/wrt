@@ -1,0 +1,725 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"ipv",
+				"ipv6"
+			],
+			[
+				"setIPv",
+				"setIPv6"
+			],
+			[
+				"kAPIP",
+				"kAPIPv6"
+			],
+			[
+				"wrt",
+				"wrt54g"
+			],
+			[
+				"Type",
+				"Type"
+			],
+			[
+				"mac",
+				"mac"
+			],
+			[
+				"const",
+				"const"
+			],
+			[
+				"MAC",
+				"MACtoEUI64"
+			],
+			[
+				"Mac",
+				"MACAddress"
+			],
+			[
+				"Acce",
+				"AccessPoint"
+			],
+			[
+				"k",
+				"kConfigFile"
+			],
+			[
+				"Key",
+				"Key"
+			],
+			[
+				"EUI",
+				"MACtoEUI64"
+			],
+			[
+				"Access",
+				"AccessPoint"
+			],
+			[
+				"sett",
+				"setting"
+			],
+			[
+				"Sessi",
+				"Session"
+			],
+			[
+				"Exception",
+				"exception"
+			],
+			[
+				"IPv",
+				"IPv4Address"
+			],
+			[
+				"Co",
+				"Config"
+			],
+			[
+				"pending",
+				"pendingRemovals"
+			],
+			[
+				"libcon",
+				"libconfig::Setting"
+			],
+			[
+				"kRemo",
+				"kRemoveList"
+			],
+			[
+				"libconf",
+				"libconfig::Setting"
+			],
+			[
+				"libco",
+				"libconfig::Config"
+			],
+			[
+				"kAPIPv",
+				"kAPIPv6"
+			],
+			[
+				"lib",
+				"libconfig::Setting::TypeString"
+			],
+			[
+				"libc",
+				"libconfig::Setting"
+			],
+			[
+				"fail",
+				"failure_message"
+			],
+			[
+				"libconfig",
+				"libconfig::Config"
+			],
+			[
+				"throw",
+				"throw_with_nested"
+			],
+			[
+				"error",
+				"error_message"
+			],
+			[
+				"thr",
+				"throw_with_nested"
+			],
+			[
+				"Log",
+				"LogLevel"
+			],
+			[
+				"libcio",
+				"libconfig::Config"
+			],
+			[
+				"kEx",
+				"kExitSuccess"
+			],
+			[
+				"erro",
+				"error_message"
+			],
+			[
+				"std",
+				"std::cout"
+			],
+			[
+				"Add",
+				"Add"
+			],
+			[
+				"kC",
+				"kConfigFile"
+			],
+			[
+				"kCo",
+				"kConfigDirectory"
+			],
+			[
+				"kVer",
+				"kVeryVerboseLogLevel"
+			],
+			[
+				"Rem",
+				"Remove"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "src/main.hxx",
+			"settings":
+			{
+				"buffer_size": 4844,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/include/ssh_session.hxx",
+			"settings":
+			{
+				"buffer_size": 2889,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/include/ssh_keys.hxx",
+			"settings":
+			{
+				"buffer_size": 1151,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/include/wrt_ap.hxx",
+			"settings":
+			{
+				"buffer_size": 3036,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/lib/ssh/ssh_keys.cxx",
+			"settings":
+			{
+				"buffer_size": 1308,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "/***********************************************************************\n * ssh_session.cxx                                                     *\n *                                                                     *\n * Copyright 2013 William Patrick Millard <wmillard1@gmail.com>        *\n *                                                                     *\n * The ssh::Session class contains the state of the SSH connection     *\n *                                                                     *\n * This file is a C++ library that acts as a wrapper for the libssh    *\n * library. This file's purpose is to wrap C code in the library for   *\n * clean use as objects in C++                                         *\n *                                                                     *\n * This file was created out of dissatisfaction (upon looking into the *\n * C++ wrapper from libssh). I feel that optimization that compromises *\n * readability is silly in the presense of no profiling.               *\n *                                                                     *\n * Therefore: I rewrote the header wrapper, and omitted functionality  *\n * I felt was unnecessary - thus I don't believe this code is covered  *\n * under the GPL.                                                      *\n *                                                                     *\n * HOWEVER: I AM NOT AN EXPERT ON THE GPL!!!                           *\n *                                                                     *\n * I am not adverse to licensing my code under the GPL, but would like *\n * to retain the freedom to choose my licensing later. If this is not  *\n * possible, so be it (I will happily correct the issue). Otherwise,   *\n * I am naming this file my own!                                       *\n *                                                                     *\n **********************************************************************/\n\n#include <ssh_session.hxx>\n\nnamespace ssh {\n\nSession::Session() {\n  c_session_ = ssh_new();\n  ssh_set_blocking(c_session_, 1);\n  ssh_blocking_flush(c_session_, 1);\n}\n\nSession::~Session() {\n  ssh_free(c_session_);\n  c_session_=NULL;\n}\n\n  /**\n   * Sets an SSH session options\n   * param: type Type of option\n   * param: option std::string containing the value of option\n   * throws: SshException on error\n   **/\nvoid Session::setOption(enum ssh_options_e type, std::string option) {\n  if(ssh_options_set(c_session_, type, option.c_str()) == SSH_ERROR) {\n    throw SshException(c_session_);\n  }\n}\n\n  /**\n   * Sets an SSH session options\n   * param: type - Type of option\n   * param: option - cstring containing the value of option\n   * throws: SshException on error\n   **/\nvoid Session::setOption(enum ssh_options_e type, const char *option) {\n  if(ssh_options_set(c_session_, type, option) == SSH_ERROR) {\n    throw SshException(c_session_);\n  }\n}\n\n  /**\n   * Sets an SSH session options\n   * param: type Type of option\n   * param: option long integer containing the value of option\n   * throws: SshException on error\n   **/\n  void Session::setOption(enum ssh_options_e type, long int option) {\n    if(ssh_options_set(c_session_, type, &option) == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n  }\n\n  /**\n   * Sets an SSH session options\n   * param: type Type of option\n   * param: option void pointer containing the value of option\n   * throws: SshException on error\n   **/\n  void Session::setOption(enum ssh_options_e type, void *option) {\n    if(ssh_options_set(c_session_, type, option) == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n  }\n\n  /* Connects to the remote host\n   * throws: SshException on error\n   * see ssh_connect\n   */\n  void Session::connect() {\n    if(ssh_connect(c_session_) == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n  }\n\n  /* Authenticates automatically using public key\n   * throws: SshException on error\n   * returns: SSH_AUTH_SUCCESS, SSH_AUTH_PARTIAL, SSH_AUTH_DENIED\n   * see ssh_userauth_autopubkey\n   */\n  int Session::userauthPublickeyAuto() {\n    int rtn = ssh_userauth_publickey_auto(c_session_, NULL, NULL);\n    \n    if(rtn == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n    \n    return rtn;\n  }\n\n  /* Authenticates using the password method.\n   * param:   password to use for authentication\n   * throws:  SshException on error\n   * returns: SSH_AUTH_SUCCESS, SSH_AUTH_PARTIAL, SSH_AUTH_DENIED\n   * see ssh_userauth_password\n   */\n  int Session::userauthPassword(const char *password) {\n    int rtn = ssh_userauth_password(c_session_, NULL, password);\n    \n    if(rtn == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n\n    return rtn;\n  }\n\n  /* Try to authenticate using the publickey method.\n   * param:   pubkey public key to use for authentication\n   * throws:  SshException on error\n   * returns: SSH_AUTH_SUCCESS if the pubkey is accepted,\n   * returns: SSH_AUTH_DENIED if the pubkey is denied\n   * see ssh_userauth_try_pubkey\n   */\n  int Session::userauthTryPublickey(ssh_key pubkey) {\n    int rtn = ssh_userauth_try_publickey(c_session_, NULL, pubkey);\n    \n    if(rtn == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n    \n    return rtn;\n  }\n\n  /* Authenticates using the publickey method.\n   * param: privkey private key to use for authentication\n   * throws: SshException on error\n   * returns: SSH_AUTH_SUCCESS, SSH_AUTH_PARTIAL, SSH_AUTH_DENIED\n   * see ssh_userauth_pubkey\n   */\n  int Session::userauthPublickey(ssh_key privkey) {\n    int rtn = ssh_userauth_publickey(c_session_, NULL, privkey);\n    \n    if(rtn == SSH_ERROR) {\n     throw SshException(c_session_);\n    }\n    \n    return rtn;\n  }\n\n  /* Returns the available authentication methods from the server\n   * throws:  SshException on error\n   * returns: Bitfield of available methods.\n   * see ssh_userauth_list\n   */\n  int Session::getAuthList() {\n    int rtn = ssh_userauth_list(c_session_, NULL);\n    \n    if(rtn == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n    \n    return rtn;\n  }\n\n\n\n  /**\n   * Disconnects from the SSH server and closes connection\n   **/\n  void Session::disconnect() {\n    ssh_disconnect(c_session_);\n  }\n\n  /**\n   * Returns the disconnect message from the server, if any\n   * returns: pointer to the message, or NULL. Do not free the pointer.\n   **/\n  const char* Session::getDisconnectMessage() {\n    const char *msg = ssh_get_disconnect_message(c_session_);\n    return msg;\n  }\n\n  const char* Session::getError() {\n    return ssh_get_error(c_session_);\n  }\n\n  int Session::getErrorCode() {\n    return ssh_get_error_code(c_session_);\n  }\n\n  /* getSocket description\n   * Returns the file descriptor used for the communication\n   * returns: the file descriptor\n   * warning: if a proxycommand is used, this function will only return\n   *          one of the two file descriptors being used\n   **/\n  socket_t Session::getSocket() {\n    return ssh_get_fd(c_session_);\n  }\n\n  /**\n   * Gets the Issue banner from the ssh server\n   * returns: the issue banner. This is generally a MOTD from server\n   **/\n  std::string Session::getIssueBanner() {\n    char *banner = ssh_get_issue_banner(c_session_);\n    \n    std::string str = std::string(banner);\n    std::free(banner);\n    \n    return str;\n  }\n\n  /**\n   * Returns the OpenSSH version (server) if possible\n   * returns: openssh version code\n   **/\n  int Session::getOpensshVersion() {\n    return ssh_get_openssh_version(c_session_);\n  }\n\n  /**\n   * Returns the version of the SSH protocol being used\n   * returns: the SSH protocol version\n   **/\n  int Session::getVersion() {\n    return ssh_get_version(c_session_);\n  }\n\n  /**\n   * Verifies that the server is known\n   * throws:  SshException on error\n   * returns: Integer value depending on the knowledge of the server key\n   **/\n  int Session::isServerKnown() {\n    int rtn = ssh_is_server_known(c_session_);\n    \n    if(rtn == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n    \n    return rtn;\n  }\n\n  /**\n   * Copies options from a session to another\n   * throws: SshException on error\n   **/\n  void Session::optionsCopy(const Session &source) {\n    if(ssh_options_copy(source.c_session_, &c_session_) == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n  }\n\n  /**\n   * Parses a configuration file for options\n   * throws: SshException on error\n   * param:  file configuration file name\n   **/\n  void Session::optionsParseConfig(const char *file) {\n    if(ssh_options_parse_config(c_session_, file) == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n  }\n\n  /**\n   * Silently disconnect from remote host\n   **/\n  void Session::silentDisconnect() {\n    ssh_silent_disconnect(c_session_);\n  }\n\n  /**\n   * Writes the known host file with current host key\n   * throws: SshException on error\n   **/\n  int Session::writeKnownhost() {\n    int rtn = ssh_write_knownhost(c_session_);\n    \n    if(rtn == SSH_ERROR) {\n      throw SshException(c_session_);\n    }\n\n    return rtn;\n  }\n\n} //namespace ssh\n\n//EOF\n",
+			"file": "src/lib/ssh/ssh_session.cxx",
+			"file_size": 9030,
+			"file_write_time": 130269916828550058,
+			"settings":
+			{
+				"buffer_size": 9016,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/lib/wrt/wrt_ap.cxx",
+			"settings":
+			{
+				"buffer_size": 5887,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/main.cxx",
+			"settings":
+			{
+				"buffer_size": 19443,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 375.0,
+		"selected_items":
+		[
+			[
+				"Packa",
+				"Package Control: Install Package"
+			],
+			[
+				"git push",
+				"Git: Push Current Branch"
+			],
+			[
+				"git commi",
+				"Git: Commit"
+			],
+			[
+				"git fe",
+				"Git: Reset (unstage) Current File"
+			],
+			[
+				"git add",
+				"Git: Add Current File"
+			],
+			[
+				"git status",
+				"Git: Status"
+			],
+			[
+				"git",
+				"Git: Commit"
+			],
+			[
+				"package",
+				"Package Control: Install Package"
+			],
+			[
+				"Packag",
+				"Package Control: Install Package"
+			],
+			[
+				"Package",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Con",
+				"Package Control: List Packages"
+			],
+			[
+				"Pac",
+				"Preferences: Browse Packages"
+			]
+		],
+		"width": 435.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); open(os.path.join(ipp, pf), 'wb').write(urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ','%20')).read())"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/wmillard/wrt/examples/wrt.cfg",
+		"/home/wmillard/wrt/README",
+		"/home/wmillard/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+		"/home/wmillard/.config/sublime-text-3/Packages/Default/Preferences.sublime-settings",
+		"/home/wmillard/wrt/src/lib/ssh/ssh_keys.cxx",
+		"/home/wmillard/wrt/src/main.cxx",
+		"/home/wmillard/wrt/src/main.hxx",
+		"/home/wmillard/.config/sublime-text-3/Packages/User/Default (Linux).sublime-keymap"
+	],
+	"find":
+	{
+		"height": 37.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"GetAddList",
+			"ListAP",
+			"APList",
+			" const",
+			"const",
+			"ipv6_address",
+			"ipv4_address",
+			"mac_address",
+			"ap_name",
+			"_c_session",
+			"removeAP",
+			"230",
+			"GetAPList",
+			"ParseAPList",
+			"}\n",
+			"ConfigFile",
+			"ListManagedAPs",
+			"368"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"",
+			"ipv6_address_",
+			"ipv4_address_",
+			"mac_address_",
+			"ap_name_",
+			"c_session_",
+			"ListAPs"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "src/main.hxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4844,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1902,
+								1902
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1699.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/include/ssh_session.hxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2889,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1714,
+								1714
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/include/ssh_keys.hxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1151,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								851,
+								851
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "src/include/wrt_ap.hxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3036,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2311,
+								2311
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 494.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "src/lib/ssh/ssh_keys.cxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1308,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								971,
+								971
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		},
+		{
+			"selected": 2,
+			"sheets":
+			[
+				{
+					"buffer": 5,
+					"file": "src/lib/ssh/ssh_session.cxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9016,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2038,
+								2038
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 328.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "src/lib/wrt/wrt_ap.cxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5887,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3646,
+								3646
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1844.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "src/main.cxx",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 19443,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								8213,
+								8213
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 431.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 36.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			0.5,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 120.0
+	},
+	"output.git":
+	{
+		"height": 120.0
+	},
+	"project": "wrt.sublime-project",
+	"replace":
+	{
+		"height": 66.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 160.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
