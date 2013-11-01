@@ -20,67 +20,71 @@
 #include <iomanip>
 #include <unordered_map>
 
-#include <ssh.hpp> //DEPRICATE THIIIIIIS
 #include <libconfig.h++>
 
 #include <wrt_ap.hxx>
-#include <ssh_keys.hxx>
-#include <ssh_exception.hxx>
-#include <ssh_session.hxx>
+#include <wrt_io.hxx>
+#include <wrt_exception.hxx>
+
+namespace wrt {
 
 //Constants
                   //Exit codes
-const int         kExitSuccess         = 0,
-                  kExitFailure         = 1,
+const int         kExitSuccess            = EXIT_SUCCESS,
+                  kExitFailure            = EXIT_FAILURE,
 
                   //Magic numbers
-                  kForever             = 1,
-                  
-                  //Log levels
-                  kBriefLogLevel       = 0,
-                  kDefaultLogLevel     = 1,
-                  kVerboseLogLevel     = 2,
-                  kVeryVerboseLogLevel = 3;
+                  kForever                = 1;
 
                   //Config defaults
-const std::string kConfigDirectory     = "/etc/wrt/",
-                  kConfigFile          = "wrt.cfg";
-
+const std::string kDefaultConfigDirectory = "/etc/wrt/",
+                  kDefaultConfigFileName  = "wrt.cfg";
+                  
                   //Internal command line parser labels
-const char        kPushConfiguration[] = "push",
-                  kForceOperation[]    = "force",
-                  kListAPs[]           = "list",
-                  kAddAPs[]            = "add",
-                  kRemoveAPs[]         = "remove",
-                  kAddList[]           = "addlist",
-                  kRemoveList[]        = "removelist";
+const char        kPushConfiguration[]    = "push",
+                  kForceOperation[]       = "force",
+                  kListAPs[]              = "list",
+                  kAddAPs[]               = "add",
+                  kRemoveAPs[]            = "remove",
+                  kAddList[]              = "addlist",
+                  kRemoveList[]           = "removelist";
 
                   //Config file field tags, and structure tags
-const char        kLocalUser[]         = "local_user",
-                  kRemoteUser[]        = "remote_user",
-                  kCertificates[]      = "cert_dir",
-                  kSSID[]              = "SSID",
-                  kCrypto[]            = "encryption",
-                  kPassword[]          = "secret",
-                  kAPList[]            = "Access_Points",
-                  kAPName[]            = "Name",
-                  kAPMAC[]             = "MAC",
-                  kAPIPv6[]            = "IPv6",
-                  kAPIPv4[]            = "IPv4";
+const char        kLocalUser[]            = "Local_User",
+                  kRemoteUser[]           = "Remote_User",
+                  kCertificates[]         = "Cert_Dir",
+                  kConfigDirectory[]      = "Config_Dir",
+                  kConfigurationFile[]    = "Config_File",
+                  kLogDirectory[]         = "Log_Dir",
+                  kSSID[]                 = "SSID",
+                  kCrypto[]               = "Encryption",
+                  kPassword[]             = "Wifi_Password",
+                  kAPList[]               = "Access_Points",
+                  kAPName[]               = "Name",
+                  kAPType[]               = "Type",
+                  kAPMAC[]                = "MAC",
+                  kAPIPv6[]               = "IPv6",
+                  kAPIPv4[]               = "IPv4";
+
+//WRT output stream
+WRTout wout;
+WRTout werr;
 
 //Global flags for program control - only EVER set when parsing command line
-std::string ConfigFile  = kConfigDirectory + kConfigFile;
+std::string ConfigFile  = kDefaultConfigDirectory + kDefaultConfigFileName;
 
-int  LogLevel           = kDefaultLogLevel;
+Output::Verbosity OutputLevel = Output::Verbosity::kDefault;
+//extern std::stream ConfigFile = ConfigFile::kDefault;
 
-//Depricate
 bool Push               = false,
      Force              = false,
      List               = false,
      Add                = false,
      Remove             = false;
 
-/* Command line options that wrt accepts - used by getopt */
+/**
+ * struct for use by gnu clo parsing
+ */
 static struct option long_options[] = {
   {"config",    required_argument,    0,  'c'},
   {"list",      no_argument,          0,  'l'},
@@ -96,34 +100,29 @@ static struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
+}
+
 //typedef for hash list of APs known
 typedef std::unordered_map<std::string,wrt::AccessPoint> APList;
 
+//Utility functions to read / write config files
+libconfig::Config& ReadConfigFile(std::string file =
+  wrt::kDefaultConfigDirectory + wrt::kDefaultConfigFileName);
+void WriteConfigFile(libconfig::Config& settings, std::string file =
+  wrt::kDefaultConfigDirectory + wrt::kDefaultConfigFileName);
 
-//Configuration function block
-
-//Config file reading / writing
-libconfig::Config& ReadConfigFile(std::string file);
-void               WriteConfigFile(libconfig::Config& file);
-
-/* The only function permitted to set global variables. Normally, globals are
- * bad practice, but this function depends on no program variables, and it's
- * only input is the command line arguments of the program. It's only output is
- * a libconfig root setting of items to add / remove. */
+//Utility function to parse command line configuration
 libconfig::Setting& ParseCommandLineOptions(int argc, char **argv);
 
-//Utility function block
-APList&            GetAPList(libconfig::Config &settings);
+//Driver function command blocks
+void PrintAP(wrt::AccessPoint& AP, int index = 0);
+void AddAPConfig(wrt::AccessPoint& AP);
+void AddAPKey(wrt::AccessPoint& AP);
+void RemoveAPConfig(wrt::AccessPoint& AP);
+void RemoveAPKey(wrt::AccessPoint& AP);
+void PushConfig(wrt::AccessPoint& AP);
 
-//Main program function block 
-void ListAPs(libconfig::Config& config);
-void AddAPConfig(libconfig::Config& config, APList &APInfo);
-void AddAPKey(libconfig::Config& config, APList &APInfo);
-void RemoveAPConfig(libconfig::Config& config, APList &APInfo);
-void RemoveAPKey(libconfig::Config& config, APList &APInfo);
-void PushConfig(libconfig::Config& config, wrt::AccessPoint& AP);
-
-//Command line prompt block
+//Command line output functions / command blocks
 void Help();
 void Usage();
 void Version();

@@ -1,15 +1,16 @@
-/***********************************************************************
- * wrt_ap.cxx                                                          *
- *                                                                     *
- * Copyright 2013 William Patrick Millard <wmillard1@gmail.com>        *
- *                                                                     *
- * This file is an object designed to organize a single remote access  *
- * point's info to be used for later use - namely:                     *
- *   o. To organize individual access point information by object.     *
- *   o. To use these listings to establish individual ssh sessions.    *
- *   o. To keep a history of individual statistics and logs.           *
- *                                                                     *
- **********************************************************************/
+/******************************************************************************
+ * wrt_ap.cxx                                                                 *
+ *                                                                            *
+ * Copyright 2013 William Patrick Millard <wmillard1@gmail.com>               *
+ *                                                                            *
+ * This file is an object designed to organize a single remote access         *
+ * point's info to be used for later use - namely:                            *
+ *   o. To organize individual access point information by object.            *
+ *   o. To use these individual listings to establish ssh sessions.           *
+ *   o. To keep a history of individual logs. (FUTURE)                        *
+ *   o. To create a record of based on individual statistics (SUPER FUTURE)   *
+ *                                                                            *
+ ******************************************************************************/
 
 #include <wrt_ap.hxx>
 
@@ -81,16 +82,36 @@ AccessPoint::AccessPoint(const char* MACAddress) {
   MACtoEUI64(link_local_ipv6_address_);
 }
 
+bool AccessPoint::hasName() {
+  return ap_name_ != mac_address_;
+}
+
 bool AccessPoint::hasType() {
   return ap_type_ != AccessPoint::Type::none;
 }
 
-AccessPoint::Type AccessPoint::getRawType() {
+bool AccessPoint::hasIPv4() {
+  return ipv4_address_ != "0.0.0.0";
+}
+
+bool AccessPoint::hasIPv6() {
+  return ipv6_address_ != "::0";
+}
+
+bool AccessPoint::hasLinkLocalIPv4() {
+  return link_local_ipv4_address_ != "0.0.0.0";
+}
+
+bool AccessPoint::hasLinkLocalIPv6() {
+  return link_local_ipv6_address_ != "::0";
+}
+
+AccessPoint::Type AccessPoint::getEnumType() {
   return ap_type_;
 }
 
-bool AccessPoint::hasName() {
-  return ap_name_ != mac_address_;
+AccessPoint::Type AccessPoint::getRawType() {
+  return ap_type_;
 }
 
 std::string AccessPoint::getName() {
@@ -131,12 +152,28 @@ std::string AccessPoint::getIPv6() {
   return ipv6_address_;
 }
 
+std::string AccessPoint::getLinkLocalIPv4() {
+  return link_local_ipv4_address_;
+}
+
+std::string AccessPoint::getLinkLocalIPv6() {
+  return link_local_ipv6_address_;
+}
+
 void AccessPoint::setIPv4(std::string address) {
   ipv4_address_ = address;
 }
 
 void AccessPoint::setIPv6(std::string address) {
   ipv6_address_ = address;
+}
+
+void AccessPoint::setType(std::string type) {
+  ap_type_ = StringToType(type);
+}
+
+void AccessPoint::setType(AccessPoint::Type type) {
+  ap_type_ = type;
 }
 
 int AccessPoint::compare(AccessPoint const& ap) {
@@ -218,6 +255,16 @@ std::string AccessPoint::TypeToString(AccessPoint::Type Type) {
     default:
       return "unknown";
   }
+}
+
+AccessPoint::Type AccessPoint::StringToType(std::string type) {
+  static std::unordered_map<std::string, AccessPoint::Type> getEnum = 
+    { {"none",      AccessPoint::Type::none},
+      {"tl_wr703n", AccessPoint::Type::tl_wr703n},
+      {"tl_mr3020", AccessPoint::Type::tl_mr3020},
+      {"wrt54g",    AccessPoint::Type::whr_hp_g300n} };
+
+  return getEnum[type];
 }
 
 } //namespace wrt
