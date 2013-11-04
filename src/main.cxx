@@ -403,6 +403,18 @@ void AddAPConfig(AccessPoint &AP) {
 void AddAPKey(AccessPoint &AP) {
   std::string failure_message = "AddAPKey(libconfig::Config"
                                 " &, AccessPoint &) failed.";
+  auto child = fork();
+
+  if (child)
+  {
+    //I'm silly    
+  }
+  else 
+  {
+    wout << "IM CHILDISH!" << std::endl;
+    std::exit;
+
+  }
 
   return;
 }

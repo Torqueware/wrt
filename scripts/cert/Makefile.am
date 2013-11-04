@@ -3,7 +3,7 @@ wrtconfdir = $(sysconfdir)/$(PACKAGE)
 wrtconf_DATA = id_dsa id_dsa.pub
 
 #If we clean - kill the keys
-CLEANFILES = id_dsa id_dsa.pub
+DISTCLEANFILES = id_dsa id_dsa.pub
 
 #Build the dsa keys
 id_dsa.pub: id_dsa
