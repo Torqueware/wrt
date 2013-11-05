@@ -10,18 +10,29 @@
 #ifndef WRT_MAIN_H_
 #define WRT_MAIN_H_
 
+// SYSTEM LIBRARIES
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
+#include <sys/wait.h>
+
+// C LIBRARIES
 #include <getopt.h>
 
+// STL LIBRARIES
+#include <iostream> 
 #include <cstdlib>
+#include <cerrno>
 #include <exception>
 #include <stdexcept>
-#include <iostream>
 #include <iomanip>
 #include <unordered_map>
 
+// LIBCONFIG DEPENDENCY
 #include <libconfig.h++>
 
+// WRT OBJECTS
 #include <wrt_ap.hxx>
 #include <wrt_io.hxx>
 #include <wrt_exception.hxx>
@@ -117,7 +128,7 @@ void WriteConfigFile(libconfig::Config& settings, std::string file =
 libconfig::Setting& ParseCommandLineOptions(int argc, char **argv);
 
 //Driver function command blocks
-void PrintAP(wrt::AccessPoint& AP, int index = 0, int depth = 0);
+void PrintAP(wrt::AccessPoint& AP, int depth = 0);
 void AddAPConfig(wrt::AccessPoint& AP);
 void AddAPKey(wrt::AccessPoint& AP);
 void RemoveAPConfig(wrt::AccessPoint& AP);

@@ -214,11 +214,13 @@ void AccessPoint::FormatMAC(std::string& MACtoFormat) {
 }
 
 void AccessPoint::MACtoEUI64(std::string& MACtoMutate) {
-  if(MACtoMutate.empty()) {
-    MACtoMutate="fe80::02:00:00:ff:fe:00:00:00";
+  if(MACtoMutate.empty())
+  {
+    MACtoMutate="fe80::0200:00ff:fe00:0000";
+  }
 
-  } else {
-
+  else
+  {
     //this is where the fun stops
     std::stringstream ss(std::ios_base::in | 
       std::ios_base::out | std::ios_base::ate);
@@ -233,6 +235,7 @@ void AccessPoint::MACtoEUI64(std::string& MACtoMutate) {
      * These addresses are ideal because they cannot leave the local
      * network - assuming sanity (RFC conformance).
      **/
+    
     ss << "fe80::" << MACtoMutate.at(0) << std::hex
        << (std::strtoul(MACtoMutate.c_str() + 1, NULL, 16) | 0x2)
        << std::dec << std::nouppercase << MACtoMutate.substr(3, 5)

@@ -188,7 +188,7 @@ void WriteConfigFile(libconfig::Config& settings, std::string file) {
   {
     try
     {
-     settings.writeFile(file.c_str());
+     settings.writeFile(ConfigFile.c_str());
 
     }
 
@@ -222,8 +222,10 @@ APList& GetAddList(libconfig::Setting& parse) {
 
       for (int i = 0, size = list.getLength(); i < size - 1; i++) {
         std::string name = list[i], mac = list[i+1];
-         pendingAdditions[name] = AccessPoint(name, mac);
-         i++;
+        
+        pendingAdditions[name] = AccessPoint(name, mac);
+        
+        i++;
       }
 
     } catch (...) {
@@ -235,12 +237,11 @@ APList& GetAddList(libconfig::Setting& parse) {
 }
 
 APList& GetRemoveList(libconfig::Setting& parse) {
-  std::string failure_message = "GetAddList(libconfig::Settings &) failed.";
+  std::string failure_message = "GetRemoveList(libconfig::Settings &) failed.";
   static APList pendingRemovals;
 
   if(pendingRemovals.empty()) {
     try {
-
       libconfig::Setting &list = parse[kRemoveList];
 
       for (int i = 0, size = list.getLength(); i < size; i++) {
@@ -271,7 +272,7 @@ APList& GetAPList(libconfig::Config &config) {
                     mac  = list[i][kAPMAC],
                     ipv4 = list[i][kAPIPv4],
                     ipv6 = list[i][kAPIPv6];
-      
+
           APs[name] = AccessPoint(name, mac);
           APs[name].setType(type);
           APs[name].setIPv4(ipv4);
@@ -300,11 +301,8 @@ APList& GetAPList(libconfig::Config &config) {
  * @param   AP       AccessPoint object to list data for
  * @param   index    Index to print. An index of 0 is omitted
  *                   (remember: index, not offset)
+ * @param   depth    Depth to begin indenting at
  */
-void PrintAP(AccessPoint& AP, int depth) {
-  PrintAP(AP, 0, depth);
-}
-
 void PrintAP(AccessPoint& AP, int index, int depth) {
   int upper = Output::kTabWidth * depth,
       lower = Output::kTabWidth * (depth + 1);
@@ -347,11 +345,24 @@ void PrintAP(AccessPoint& AP, int index, int depth) {
 }
 
 /**
+ * Function that prints a single AP, meant to be used to list them
+ *
+ * @method  PrintAP
+ *
+ * @param   AP       AccessPoint object to list data for
+ * @param   index    Index to print. An index of 0 is omitted
+ *                   (remember: index, not offset)
+ */
+void PrintAP(AccessPoint& AP, int depth) {
+  PrintAP(AP, 0, depth);
+}
+
+/**
  * Adds AP to the config file
  *
  * @method  AddAPConfig
  *
- * @param   AP           [description]
+ * @param   AP           AP information to add
  */
 void AddAPConfig(AccessPoint &AP) {
   std::string already_exists = "\"" + AP.getName() + "\" already exists!",
@@ -379,6 +390,7 @@ void AddAPConfig(AccessPoint &AP) {
 
     libconfig::Setting &NewEntry = APList.add(libconfig::Setting::TypeGroup);
     NewEntry.add(kAPName, libconfig::Setting::TypeString) = AP.getName();
+    NewEntry.add(kAPType, libconfig::Setting::TypeString) = AP.getType();
     NewEntry.add(kAPMAC,  libconfig::Setting::TypeString) = AP.getMAC();
     NewEntry.add(kAPIPv4, libconfig::Setting::TypeString) = AP.autoIPv4();
     NewEntry.add(kAPIPv6, libconfig::Setting::TypeString) = AP.autoIPv6();
@@ -404,22 +416,103 @@ void AddAPConfig(AccessPoint &AP) {
  *
  * @method  AddAPKey
  *
- * @param   AP        [description]
+ * @param   AP        AP information to get ssh pubkey from
  */
 void AddAPKey(AccessPoint &AP) {
-  std::string failure_message = "AddAPKey(libconfig::Config"
-                                " &, AccessPoint &) failed.";
-  auto child = fork();
+  std::string failure_message  = "AddAPKey(AccessPoint &) failed.";
+  std::string known_hosts_path = ReadConfigFile().lookup(kConfigDirectory);
+  known_hosts_path += std::string("known_hosts");
+  int child, status, known_hosts;
 
-  if (child)
+  wout << Output::Verbosity::kDebug1
+       << "AddAPKey(AccessPoint &) called." << std::endl;
+
+  wout << Output::Verbosity::kDebug2
+       << "Opening file \"" << known_hosts_path << "\" for child process"
+       << std::endl;
+
+  known_hosts = open(known_hosts_path.c_str(),
+                     O_WRONLY | O_APPEND | O_CREAT,
+                     S_IRUSR | S_IWUSR);
+
+  if (known_hosts != -1)
   {
-    //I'm silly    
+    wout << Output::Verbosity::kDebug2
+         << "File opened successfully!" << std::endl;
+    
+    wout << Output::Verbosity::kDebug3
+         << "File \"" << known_hosts_path
+         << "\" opened as fd " << known_hosts << std::endl;
+
+    if((child = fork()) != -1)
+    {
+      if (child)
+      {
+        wout << Output::Verbosity::kDebug2
+             << "Child process spawned - closing known_hosts file"
+             << " and waiting for child." << std::endl;
+
+        close(known_hosts);
+        waitpid(child, &status, 0);
+
+        wout << Output::Verbosity::kDebug2
+             << "Child process termination."
+             << std::endl << std::flush;
+
+        wout << Output::Verbosity::kDebug3
+             << "Child process exit status: "
+             << WEXITSTATUS(status)
+             << std::endl << std::flush;
+      } 
+
+      else
+      {
+        dup2(known_hosts, STDOUT_FILENO);
+        close(STDIN_FILENO);
+        close(STDERR_FILENO);
+
+        if (AP.hasIPv4())
+        {
+          execlp("ssh-keyscan", AP.getIPv4().c_str(), (char *)NULL);
+        }
+
+        else if (AP.hasIPv6())
+        {
+          execlp("ssh-keyscan", AP.getIPv6().c_str(), (char *)NULL); 
+        }
+        
+        else if (AP.hasLinkLocalIPv6())
+        {
+          execlp("ssh-keyscan", "ssh-keyscan", AP.getLinkLocalIPv6().append("\%eth0").c_str(), (char *)NULL);
+        }
+
+        std::exit(kExitFailure);
+      }
+    }
   }
-  else 
-  {
-    wout << "IM CHILDISH!" << std::endl;
-    std::exit;
 
+  if (known_hosts == -1 || child == -1)
+  {
+    try
+    {
+      std::string error;
+      if (known_hosts == -1)
+      {
+        error = "open(): cannot open file \"" + known_hosts_path + "\"";
+      }
+
+      else
+      {
+        error = "fork(): returned -1";
+      }
+      
+      throw(std::runtime_error(error));
+    }
+
+    catch (...)
+    {
+      std::throw_with_nested(std::runtime_error(failure_message));
+    }
   }
 
   return;
@@ -480,30 +573,151 @@ void RemoveAPConfig(AccessPoint &AP) {
  *
  * @param   APInfo       [description]
  */
-void RemoveAPKey(AccessPoint &APInfo) {
-  std::string error_message = "RemoveAPKey() failed";
+void RemoveAPKey(AccessPoint &AP) {
+  std::string failure_message  = "RemoveAPKey(AccessPoint &) failed.";
+  std::string known_hosts_path = ReadConfigFile().lookup(kConfigDirectory);
+  known_hosts_path += std::string("known_hosts");
+  int child, status, known_hosts;
 
-  wout << "wrt: Removing " << APInfo.getName()
-       << " key from known_hosts file." << std::endl;
+  wout << Output::Verbosity::kDebug1
+       << "RemoveAPKey(AccessPoint &) called."
+       << std::endl;
 
-  try
+  wout << Output::Verbosity::kDefault
+       << "Checking for keys to remove in \""
+       << known_hosts_path
+       << "\"" << std::endl;
+
+  if (AP.hasIPv4()) /* Remove IPv4 from known_hosts */
   {
+    wout << Output::Verbosity::kDefault
+       << "Removing IPv4 hostname for \""
+       << AP.getName()
+       << "\"" << std::endl;
 
-    try
+    if ((child = fork()) != -1)
     {
+      if (child) /* Parent */
+      {
+        wout << Output::Verbosity::kDebug2
+             << "Child process spawned... waiting for child."
+             << std::endl;
 
+        waitpid(child, &status, 0);
+
+        wout << Output::Verbosity::kDebug2
+             << "Child process termination."
+             << std::endl << std::flush;
+
+        wout << Output::Verbosity::kDebug3
+             << "Child process exit status: "
+             << WEXITSTATUS(status)
+             << std::endl << std::flush;
+      }
+
+      else /* Child */
+      {
+        close(STDOUT_FILENO);
+        close(STDIN_FILENO);
+        close(STDERR_FILENO);
+
+        execlp("ssh-keygen", 
+               "ssh-keygen", "-q", 
+               "-R", AP.getIPv4().c_str(), 
+               "-f", known_hosts_path.c_str(),
+               NULL);
+
+        std::exit(kExitFailure);
+      }
     }
-
-    catch (...)
-    {
-      std::throw_with_nested(std::runtime_error(error_message));
-    }
-
   }
 
-  catch (const std::exception &exception)
+  if (AP.hasIPv6())  /* Remove IPv6 from known_hosts */
   {
-    print_exception(exception);
+    wout << Output::Verbosity::kDefault
+         << "Removing IPv6 hostname for \""
+         << AP.getName()
+         << "\"" << std::endl;
+
+    if ((child = fork()) != -1)
+    {
+      if (child) /* Parent */
+      {
+        wout << Output::Verbosity::kDebug2
+             << "Child process spawned... waiting for child."
+             << std::endl;
+
+        waitpid(child, &status, 0);
+
+        wout << Output::Verbosity::kDebug2
+             << "Child process termination."
+             << std::endl << std::flush;
+
+        wout << Output::Verbosity::kDebug3
+             << "Child process exit status: "
+             << WEXITSTATUS(status)
+             << std::endl << std::flush;
+      }
+
+      else /* Child */
+      {
+        close(STDOUT_FILENO);
+        close(STDIN_FILENO);
+        close(STDERR_FILENO);
+
+        execlp("ssh-keygen", 
+               "ssh-keygen", "-q", 
+               "-R", AP.getIPv6().c_str(), 
+               "-f", known_hosts_path.c_str(),
+               NULL);
+        
+        std::exit(kExitFailure);
+      }
+    }
+  }
+
+  if (AP.hasLinkLocalIPv6())
+  {
+  wout << Output::Verbosity::kDefault
+       << "Removing Link Local IPv6 hostname for \""
+       << AP.getName()
+       << "\"" << std::endl;
+
+    if ((child = fork()) != -1)
+    {
+      if (child) /* Parent */
+      {
+        wout << Output::Verbosity::kDebug2
+             << "Child process spawned... waiting for child."
+             << std::endl;
+
+        waitpid(child, &status, 0);
+
+        wout << Output::Verbosity::kDebug2
+             << "Child process termination."
+             << std::endl << std::flush;
+
+        wout << Output::Verbosity::kDebug3
+             << "Child process exit status: "
+             << WEXITSTATUS(status)
+             << std::endl << std::flush;
+      }
+
+      else /* Child */
+      {
+        close(STDOUT_FILENO);
+        close(STDIN_FILENO);
+        close(STDERR_FILENO);
+
+        execlp("ssh-keygen", 
+               "ssh-keygen", "-q", 
+               "-R", AP.getLinkLocalIPv6().append("\%eth0").c_str(), 
+               "-f", known_hosts_path.c_str(),
+               NULL);
+        
+        std::exit(kExitFailure);
+      }
+    }
   }
 
   return;
@@ -637,6 +851,7 @@ int main(int argc, char* argv[]) {
       {
         static int index = 1;
         PrintAP(AP.second, index, 1);
+        WriteConfigFile(config);
         index++;
       }
     } 
