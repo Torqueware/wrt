@@ -263,18 +263,15 @@ APList& GetAPList(libconfig::Config &config) {
   
   if (APs.empty()) {
     try {
+      libconfig::Setting &list = config.getRoot()[kAPList];
 
-      libconfig::Setting &list = config.getRoot();
-      int listCount = list[kAPList].getLength();
-    
-      for(int i = 0; i < listCount; ++i) {
-        const libconfig::Setting &AP = list[kAPList][i];
-        std::string name = list[kAPName],
-                    type = list[kAPType],
-                    mac  = list[kAPMAC],
-                    ipv4 = list[kAPIPv4],
-                    ipv6 = list[kAPIPv6];
-
+      for(int i = 0; i < list.getLength(); ++i) {
+        std::string name = list[i][kAPName],
+                    type = list[i][kAPType],
+                    mac  = list[i][kAPMAC],
+                    ipv4 = list[i][kAPIPv4],
+                    ipv6 = list[i][kAPIPv6];
+      
           APs[name] = AccessPoint(name, mac);
           APs[name].setType(type);
           APs[name].setIPv4(ipv4);
@@ -304,40 +301,49 @@ APList& GetAPList(libconfig::Config &config) {
  * @param   index    Index to print. An index of 0 is omitted
  *                   (remember: index, not offset)
  */
-void PrintAP(AccessPoint& AP, int index) {
-  std::stringstream ss(std::ios_base::in |
-                       std::ios_base::out |
-                       std::ios_base::ate);
+void PrintAP(AccessPoint& AP, int depth) {
+  PrintAP(AP, 0, depth);
+}
 
-  wout << Output::Verbosity::kDebug2
-       << "wrt: Building output for \"" << AP.getName()
-       << "\" in stringstream" << std::endl;
+void PrintAP(AccessPoint& AP, int index, int depth) {
+  int upper = Output::kTabWidth * depth,
+      lower = Output::kTabWidth * (depth + 1);
+
+    wout << Output::Verbosity::kBrief
+         << std::string(upper, ' ');
 
   if (index)
   {
-    ss << index << ": ";
+    wout << Output::Verbosity::kBrief
+         << index << ": ";
   }
 
-  ss << AP.getName() << ": " << AP.getType() << std::endl
-     << "\tMAC " << AP.getMAC() << std::endl
-     << "\tIPv4 " << AP.getIPv4() << std::endl;
+  wout << Output::Verbosity::kBrief
+       << AP.getName() << ": " << AP.getType() << std::endl
+       << std::string(lower, ' ')
+       << "MAC " << AP.getMAC() << std::endl;
+       
+  wout << Output::Verbosity::kDefault
+       << std::string(lower, ' ')
+       << "IPv4 " << AP.getIPv4() << std::endl;
 
   if (AP.hasLinkLocalIPv4())
   {
-    ss << "\tLink Local IPv4 " << AP.getLinkLocalIPv4() << std::endl;
+    wout << Output::Verbosity::kVerbose
+         << std::string(lower, ' ')
+         << "Link Local IPv4 " << AP.getLinkLocalIPv4() << std::endl;
   }
 
-  ss << "\tIPv6 " << AP.getIPv6() << std::endl;
+  wout << Output::Verbosity::kDefault
+       << std::string(lower, ' ')
+       << "IPv6 " << AP.getIPv6() << std::endl;
 
   if (AP.hasLinkLocalIPv6())
   {
-    ss << "\tLink Local IPv6 " << AP.getLinkLocalIPv6() << std::endl;
+    wout << Output::Verbosity::kVerbose
+         << std::string(lower, ' ')
+         << "Link Local IPv6 " << AP.getLinkLocalIPv6() << std::endl;
   }
-
-  wout << Output::Verbosity::kDebug2
-       << "wrt: Writing stringstream output" << std::endl;
-
-  std::cout << ss << std::endl;
 }
 
 /**
@@ -624,10 +630,13 @@ int main(int argc, char* argv[]) {
 
     if (List)
     {
+      wout << Output::Verbosity::kBrief
+           << "WRT APs Known:" << std::endl;
+
       for (auto& AP : GetAPList(config))
       {
         static int index = 1;
-        PrintAP(AP.second, index);
+        PrintAP(AP.second, index, 1);
         index++;
       }
     } 

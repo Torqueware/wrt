@@ -161,14 +161,26 @@ std::string AccessPoint::getLinkLocalIPv6() {
 }
 
 void AccessPoint::setIPv4(std::string address) {
+  if (address.empty())
+  {
+    return;
+  }
   ipv4_address_ = address;
 }
 
 void AccessPoint::setIPv6(std::string address) {
+  if (address.empty())
+  {
+    return;
+  }
   ipv6_address_ = address;
 }
 
 void AccessPoint::setType(std::string type) {
+  if (type.empty())
+  {
+    return;
+  }
   ap_type_ = StringToType(type);
 }
 
@@ -259,10 +271,15 @@ std::string AccessPoint::TypeToString(AccessPoint::Type Type) {
 
 AccessPoint::Type AccessPoint::StringToType(std::string type) {
   static std::unordered_map<std::string, AccessPoint::Type> getEnum = 
-    { {"none",      AccessPoint::Type::none},
-      {"tl_wr703n", AccessPoint::Type::tl_wr703n},
-      {"tl_mr3020", AccessPoint::Type::tl_mr3020},
-      {"wrt54g",    AccessPoint::Type::whr_hp_g300n} };
+    { {"none",         AccessPoint::Type::none},
+      {"tl_wr703n",    AccessPoint::Type::tl_wr703n},
+      {"wr703n",       AccessPoint::Type::tl_wr703n},
+      {"tl_mr3020",    AccessPoint::Type::tl_mr3020},
+      {"mr3020",       AccessPoint::Type::tl_mr3020},
+      {"whr_hp_g300n", AccessPoint::Type::whr_hp_g300n},
+      {"hp_g300n",     AccessPoint::Type::whr_hp_g300n},
+      {"hp_g300n",     AccessPoint::Type::whr_hp_g300n},
+      {"wrt54g",       AccessPoint::Type::wrt54g} };
 
   return getEnum[type];
 }

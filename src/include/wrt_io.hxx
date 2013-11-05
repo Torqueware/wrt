@@ -26,6 +26,8 @@ namespace wrt {
 
 class Output {
 public:
+  static const int kTabWidth = 2;
+
   enum class Verbosity : int {
       kSquelch     = -1,
       kBrief       =  0,

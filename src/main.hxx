@@ -56,6 +56,8 @@ const char        kLocalUser[]            = "Local_User",
                   kConfigDirectory[]      = "Config_Dir",
                   kConfigurationFile[]    = "Config_File",
                   kLogDirectory[]         = "Log_Dir",
+                  kLogLevel[]             = "Log_Level",
+                  kPIDFile[]              = "PID_File",
                   kSSID[]                 = "SSID",
                   kCrypto[]               = "Encryption",
                   kPassword[]             = "Wifi_Password",
@@ -115,7 +117,7 @@ void WriteConfigFile(libconfig::Config& settings, std::string file =
 libconfig::Setting& ParseCommandLineOptions(int argc, char **argv);
 
 //Driver function command blocks
-void PrintAP(wrt::AccessPoint& AP, int index = 0);
+void PrintAP(wrt::AccessPoint& AP, int index = 0, int depth = 0);
 void AddAPConfig(wrt::AccessPoint& AP);
 void AddAPKey(wrt::AccessPoint& AP);
 void RemoveAPConfig(wrt::AccessPoint& AP);
