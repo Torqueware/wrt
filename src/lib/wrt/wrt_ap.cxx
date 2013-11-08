@@ -64,26 +64,26 @@ AccessPoint::AccessPoint(const char* Name,
 
 AccessPoint::AccessPoint(std::string MACAddress) {
   ap_type_     = Type::none;
+
   mac_address_ = MACAddress;
   FormatMAC(MACAddress);
 
-  ap_name_                 = mac_address_;
   link_local_ipv6_address_ = mac_address_;
   MACtoEUI64(link_local_ipv6_address_);
 }
 
 AccessPoint::AccessPoint(const char* MACAddress) {
   ap_type_     = Type::none;
+
   mac_address_ = std::string(MACAddress);
   FormatMAC(mac_address_);
   
-  ap_name_                 = mac_address_;
   link_local_ipv6_address_ = mac_address_;
   MACtoEUI64(link_local_ipv6_address_);
 }
 
 bool AccessPoint::hasName() {
-  return ap_name_ != mac_address_;
+  return !ap_name_.empty();
 }
 
 bool AccessPoint::hasType() {
@@ -276,6 +276,7 @@ AccessPoint::Type AccessPoint::StringToType(std::string type) {
   static std::unordered_map<std::string, AccessPoint::Type> getEnum = 
     { {"none",         AccessPoint::Type::none},
       {"tl_wr703n",    AccessPoint::Type::tl_wr703n},
+      {"TL_WR703N",    AccessPoint::Type::tl_wr703n},
       {"wr703n",       AccessPoint::Type::tl_wr703n},
       {"tl_mr3020",    AccessPoint::Type::tl_mr3020},
       {"mr3020",       AccessPoint::Type::tl_mr3020},

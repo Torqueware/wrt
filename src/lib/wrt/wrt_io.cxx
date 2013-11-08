@@ -13,6 +13,8 @@
 
 namespace wrt {
 
+Output::Verbosity OutputLevel(Output::Verbosity::kDefault);
+
 std::string Output::EnumToString(Output::Verbosity v) {
   switch(v) {
     case Verbosity::kSquelch:

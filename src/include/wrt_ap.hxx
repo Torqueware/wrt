@@ -34,12 +34,12 @@ public:
                     whr_hp_g300n, };
 
   AccessPoint() = default;
+  AccessPoint(std::string MACAddress);
+  AccessPoint(const char* MACAddress);
   AccessPoint(std::string Name, std::string MACAddress);
   AccessPoint(const char* Name, const char* MACAddress);
   AccessPoint(std::string Name, std::string MACAddress, AccessPoint::Type Type);
   AccessPoint(const char* Name, const char* MACAddress, AccessPoint::Type Type);
-  AccessPoint(std::string MACAddress);
-  AccessPoint(const char* MACAddress);
 
   bool hasName();
   bool hasType();

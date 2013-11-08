@@ -72,11 +72,11 @@ private:
   std::string buffer_;
 };
 
+extern Output::Verbosity OutputLevel;
+
 class FileLog : public std::streambuf {
 
 };
-
-extern Output::Verbosity OutputLevel;
 
 class VerbosityBuffer : public std::streambuf {
 private:
@@ -94,8 +94,7 @@ public:
 
 protected:
   virtual int overflow(int c = EOF) {
-    if (c != EOF)
-    {
+    if (c != EOF) {
       buffer_ += static_cast<char>(c);
     }
 
@@ -103,16 +102,15 @@ protected:
   }
 
   virtual int sync() {
+
     std::cout << std::flush;
     
-    if (buffer_.length())
-    {
-      if (OutputLevel >= buffer_verbosity_)
-      {
-        fputs(buffer_.c_str(), stdout);
+    if (this->buffer_.length()) {
+      if (OutputLevel >= this->buffer_verbosity_) {
+        fputs(this->buffer_.c_str(), stdout);
       }
       
-      buffer_.erase();
+      this->buffer_.erase();
     }
 
     return 0;

@@ -11,8 +11,6 @@
 
 #include "main.hxx"
 
-using namespace wrt;
-
 /******************************************************************************
  * CONFIGURATION FUNCTIONS                                          [main-CF] *
  ******************************************************************************/
@@ -28,73 +26,130 @@ using namespace wrt;
  * @return                           libconfig setting which contains 
  *                                   parsed data from the command line
  */
-libconfig::Setting& ParseCommandLineOptions(int argc, char* argv[]) {
+void ParseCommandLineOptions(int argc, char* argv[]) {
   std::string failure_message = "ParseCommandLineOptions(int, char *) failed.";
+  int command_line_option = 0,
+      option_index        = 0;
+
   static libconfig::Config parsedData;
 
   try {
-
-    libconfig::Setting &addList =
-      parsedData.getRoot().add(kAddList, libconfig::Setting::TypeArray);
-    libconfig::Setting &removeList =
-      parsedData.getRoot().add(kRemoveList, libconfig::Setting::TypeArray);
-
-    int command_line_option = 0,
-        option_index        = 0;
-    
     do {
-      command_line_option = getopt_long(argc, argv, "lfpuvbhVc:a:r:",
+      //TODO: Un-gnu this code - consider a wrt::Configuration library
+      command_line_option = getopt_long(argc, argv, "lfpuvbhqVc:a:r:",
                                         long_options, &option_index);
 
       switch(command_line_option) {
         case 0:
+           wout << Output::Verbosity::kDebug2 
+           << "Case Zero. Bad." << std::endl;
+          //Forgot what this means
           break;
 
         case 'c':
-          ConfigFile = std::string(optarg);
+          wout << Output::Verbosity::kDebug2 
+           << "Setting target configuration file to \""
+           << optarg << "\"..." << std::endl;
+          ConfigFile = optarg;
           break;
 
         case 'l':
+          wout << Output::Verbosity::kDebug2 
+           << "Setting \"List\" operation flag..." << std::endl;
           List = true;
           break;
 
         case 'a':
+          //If we are already adding nodes, or have run out of arguments
+          //remind the user how to use the program
+          if (Remove || optind == argc) {
+            Usage();
+
+            std::exit(kExitFailure);
+          }
+
+          wout << Output::Verbosity::kDebug2 
+           << "Queue \"" << argv[optind - 1]
+           << "\" to operations list - pending removal..." << std::endl;
+
           Add = true;
-          addList.add(libconfig::Setting::TypeString) = argv[optind - 1];
-          if (optind == argc) { Usage(); }
-          addList.add(libconfig::Setting::TypeString) = argv[optind];
+          PendingNodes[argv[optind - 1]] =
+            AccessPoint(argv[optind - 1], argv[optind]);
           optind++;
           break;
 
         case 'r':
+          //If we are already adding nodes, or have run out of arguments
+          //remind the user how to use the program
+          if (Add || (optind - 1) == argc) {
+            Usage();
+
+            std::exit(kExitFailure);
+          }
+
+          wout << Output::Verbosity::kDebug2 
+               << "Queue \"" << argv[optind - 1]
+               << "\" to operations list - pending removal..." << std::endl;
+
           Remove = true;
-          removeList.add(libconfig::Setting::TypeString) = argv[optind - 1];
+          PendingNodes[argv[optind - 1]] = AccessPoint(argv[optind - 1], "");
           break;
 
         case 'p':
+                  wout << Output::Verbosity::kDebug2 
+           << "Queue \"" << argv[optind - 1]
+           << "\" to operations list - pending removal..." << std::endl;
+
           Push = true;
           break;
 
         case 'f':
+                  wout << Output::Verbosity::kDebug2 
+           << "Queue \"" << argv[optind - 1]
+           << "\" to operations list - pending removal..." << std::endl;
+
           Force = true;
           break;
 
         case 'v':
-          OutputLevel = (Output::Verbosity) (((int)OutputLevel) + 1);
+          wout << Output::Verbosity::kVerbose
+               << "Verbosity flag set...";
+          wout << Output::Verbosity::kVeryVerbose
+               << " And I am now quite verbose."<< std::endl;
+          if(OutputLevel < Output::Verbosity::kVeryVerbose) {
+            wout << Output::Verbosity::kBrief
+                 << std::endl;
+          }
+
+          wrt::OutputLevel = static_cast<Output::Verbosity>(
+                          static_cast<int>(wrt::OutputLevel) + 1);
           break;
 
         case 'b':
-          OutputLevel = (Output::Verbosity) (((int)OutputLevel) - 1);
+        case 'q':
+          wout << Output::Verbosity::kBrief 
+           << "Brevity flag set...";
+          wout << Output::Verbosity::kVerbose
+               << " reducing OutputLevel." << std::endl;
+          if(OutputLevel < Output::Verbosity::kVerbose) {
+            wout << Output::Verbosity::kBrief
+                 << std::endl;
+          }
+          wrt::OutputLevel = static_cast<Output::Verbosity>(
+                          static_cast<int>(wrt::OutputLevel) - 1);
           break;
 
         case 'u':
-          Usage(); //these functions cause immediate termination
+          Usage();
+          std::exit(kExitSuccess);
 
         case 'h':
-          Help(); //these functions cause immediate termination
+          Help();
+          std::exit(kExitSuccess);
 
         case 'V':
-          Version(); //these functions cause immediate termination
+          Version();
+          std::exit(kExitSuccess);
 
         default:
           break;
@@ -104,7 +159,6 @@ libconfig::Setting& ParseCommandLineOptions(int argc, char* argv[]) {
 
     wout << Output::Verbosity::kDebug
          << "ParseCommandLineOptions:" << std::endl;
-
 
     wout << Output::Verbosity::kDebug1
          << "ParseCommandLineOptions( " << argc << ", [";
@@ -117,28 +171,32 @@ libconfig::Setting& ParseCommandLineOptions(int argc, char* argv[]) {
     wout << Output::Verbosity::kDebug1
          << "] )" << std::endl;
 
+    if (!Push && !Force && !List && !Add && !Remove) {
+      Usage();
+
+      std::exit(kExitFailure);
+    }
+
     wout << Output::Verbosity::kVerbose 
          << "WRT Configuration:"              << std::endl
          << "\tConfig File: " << ConfigFile   << std::endl
          << "\tVerbosity: "
          << Output::EnumToString(OutputLevel) << std::endl;
     
-    wout << Output::Verbosity::kVeryVerbose
-         << "WRT Program State"         << std::endl
+    wout << Output::Verbosity::kVeryVerbose << std::boolalpha
+         << "Program State"   << std::endl
          << "\tPush   flag: " << Push   << std::endl
          << "\tForce  flag: " << Force  << std::endl
          << "\tList   flag: " << List   << std::endl
          << "\tAdd    flag: " << Add    << std::endl
          << "\tRemove flag: " << Remove << std::endl
-                                        << std::endl;
+         << std::noboolalpha            << std::endl;
     }
 
   catch (...) 
   {
     std::throw_with_nested(std::runtime_error(failure_message));
   }
-
-  return (parsedData.getRoot());
 }
 
 /**
@@ -149,7 +207,7 @@ libconfig::Setting& ParseCommandLineOptions(int argc, char* argv[]) {
  * @return libconfig::Configuration object containing parsed 
  *         information from file
  */
-libconfig::Config& ReadConfigFile(std::string file) {
+libconfig::Config& ReadConfigFile(std::string file = kDefaultConfigFile) {
   std::string failure_message = "ReadConfigFile(std::string) failed.",
               read_error = "\"" + file +"\": could not be read from disk.";
   static libconfig::Config config;
@@ -180,7 +238,8 @@ libconfig::Config& ReadConfigFile(std::string file) {
  * @param   settings         config to be written
  * @param   file             file to write to
  */
-void WriteConfigFile(libconfig::Config& settings, std::string file) {
+void WriteConfigFile(libconfig::Config& settings,
+                      std::string file = kDefaultConfigFile) {
   std::string failure_message = "WriteConfigFile(libconfig::Config &) failed.",
               write_error = "\"" + file + "\": could not be written to disk.";
 
@@ -188,7 +247,7 @@ void WriteConfigFile(libconfig::Config& settings, std::string file) {
   {
     try
     {
-     settings.writeFile(ConfigFile.c_str());
+     settings.writeFile(ConfigFile);
 
     }
 
@@ -210,53 +269,6 @@ void WriteConfigFile(libconfig::Config& settings, std::string file) {
 /******************************************************************************
  * UTILITY FUNCTIONS                                                [main-UT] *
  ******************************************************************************/
-
-APList& GetAddList(libconfig::Setting& parse) {
-  std::string failure_message = "GetAddList(libconfig::Settings &) failed.";
-  static APList pendingAdditions;
-
-  if (pendingAdditions.empty()) {
-    try {
-      
-      libconfig::Setting &list = parse[kAddList];
-
-      for (int i = 0, size = list.getLength(); i < size - 1; i++) {
-        std::string name = list[i], mac = list[i+1];
-        
-        pendingAdditions[name] = AccessPoint(name, mac);
-        
-        i++;
-      }
-
-    } catch (...) {
-      std::throw_with_nested(std::runtime_error(failure_message));
-    }
-  }
-
-  return(pendingAdditions);
-}
-
-APList& GetRemoveList(libconfig::Setting& parse) {
-  std::string failure_message = "GetRemoveList(libconfig::Settings &) failed.";
-  static APList pendingRemovals;
-
-  if(pendingRemovals.empty()) {
-    try {
-      libconfig::Setting &list = parse[kRemoveList];
-
-      for (int i = 0, size = list.getLength(); i < size; i++) {
-        std::string name = list[i];
-
-        pendingRemovals[name] = AccessPoint(name);
-      }
-
-    } catch (...) {
-      std::throw_with_nested(std::runtime_error(failure_message));
-    }
-  }
-
-  return(pendingRemovals);
-}
 
 APList& GetAPList(libconfig::Config &config) {
   std::string failure_message = "GetAPList(libconfig::Config &) failed.";
@@ -303,7 +315,7 @@ APList& GetAPList(libconfig::Config &config) {
  *                   (remember: index, not offset)
  * @param   depth    Depth to begin indenting at
  */
-void PrintAP(AccessPoint& AP, int index, int depth) {
+void PrintAP(AccessPoint& AP, int index, int depth = 0) {
   int upper = Output::kTabWidth * depth,
       lower = Output::kTabWidth * (depth + 1);
 
@@ -350,11 +362,10 @@ void PrintAP(AccessPoint& AP, int index, int depth) {
  * @method  PrintAP
  *
  * @param   AP       AccessPoint object to list data for
- * @param   index    Index to print. An index of 0 is omitted
- *                   (remember: index, not offset)
+ * @param   Depth    Depth to begin indentation
  */
-void PrintAP(AccessPoint& AP, int depth) {
-  PrintAP(AP, 0, depth);
+void PrintAP(AccessPoint& AP, int Depth) {
+  PrintAP(AP, 0, Depth);
 }
 
 /**
@@ -724,6 +735,19 @@ void RemoveAPKey(AccessPoint &AP) {
 }
 
 /**
+ * [CheckConfig description]
+ *
+ * @method  CheckConfig
+ *
+ * @param   AP           [description]
+ *
+ * @return               [description]
+ */
+bool CheckConfig(AccessPoint &AP) {
+  return false;
+}
+
+/**
  * Push configuration using child process and ssh
  *
  * @method  PushConfig
@@ -731,6 +755,11 @@ void RemoveAPKey(AccessPoint &AP) {
  * @param   AP          [description]
  */
 void PushConfig(AccessPoint& AP) {
+  libconfig::Config& config = ReadConfigFile();
+  std::string error_message = "PushConfig(AccessPoint &) has failed.";
+
+
+
 
   return;
 }
@@ -837,67 +866,67 @@ void Version() {
  * Where the magic the computer magic occurs
  */
 int main(int argc, char* argv[]) {
-  try 
-  {
-    libconfig::Setting &pendingNodes = ParseCommandLineOptions(argc, argv);
-    libconfig::Config  &config       = ReadConfigFile(ConfigFile);
+  ParseCommandLineOptions(argc, argv);
 
-    if (List)
-    {
+  try {
+    libconfig::Config &config = ReadConfigFile(ConfigFile);
+
+    if (List) {
       wout << Output::Verbosity::kBrief
            << "WRT APs Known:" << std::endl;
 
-      for (auto& AP : GetAPList(config))
-      {
+      for (auto& AP : GetAPList(config)) {
         static int index = 1;
+        
         PrintAP(AP.second, index, 1);
         WriteConfigFile(config);
+
         index++;
       }
     } 
     
-    else if (Add) 
-    {
-      for (auto& AP : GetAddList(pendingNodes)) 
-      {
+    else if (Add) {
+      wout << Output::Verbosity::kBrief
+           << "Adding Host Information to System Config:" << std::endl;
+      
+      for (auto& AP : PendingNodes) {
         AddAPConfig(AP.second);
+        
         AddAPKey(AP.second);
       }
     }
     
-    else if (Remove)
-    {
-      for (auto& AP : GetRemoveList(pendingNodes))
-      {
+    else if (Remove) {
+      wout << Output::Verbosity::kBrief
+           << "Removing Host Information from System Config:" << std::endl;
+
+      for (auto& AP : PendingNodes) {
         RemoveAPConfig(AP.second);
+        
         RemoveAPKey(AP.second);
       }
     }
 
-    else if (Push)
-    {
-      for (auto AP : GetAPList(config))
-      {
-        PushConfig(AP.second);
+    else if (Push) {
+          wout << Output::Verbosity::kBrief
+               << "Updating Managed Hosts:" << std::endl;
+
+      for (auto& AP : GetAPList(config)) {
+        if (Force || CheckConfig(AP.second)) {
+          PushConfig(AP.second);
+        }
       }
     }
-
-    else
-    {
-      Usage();
-    }
-
-    wout << "wrt: Operation completed successfully" << std::endl;
   }
 
-  catch (const std::exception &exception) 
-  {
+  catch (const std::exception &exception) {
     std::cerr << "wrt: Operation unsuccessful!" << std::endl;
     PrintException(exception, 1);
-
-
+    
     std::exit(kExitFailure);
   }
+
+  wout << "wrt: Operation completed successfully" << std::endl;
 
   std::exit(kExitSuccess);
 }
