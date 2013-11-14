@@ -990,14 +990,10 @@ bool CheckConfig(AccessPoint &AP)
  */
 void PushConfig(AccessPoint &AP)
 {
-  // std::string remoteUser  = State.lookup(kRemoteUser);
   std::string localConfig = State.lookup(kConfigDirectory);
-  // std::string identity    = State.lookup(kCertificates);
-  std::string target;//      = remoteUser;
+  std::string target;
 
-  // identity += kDefaultKeyType;
   localConfig += "config";
-  // target   += '@';
 
   if (AP.hasIPv4()) {
     target += AP.getIPv4();
@@ -1019,7 +1015,6 @@ void PushConfig(AccessPoint &AP)
     target += ']';
     target += ':';
     target += kDefaultRemoteConfigDirectory;
-    target += "test";
   }
 
   execlp("scp",
@@ -1027,8 +1022,6 @@ void PushConfig(AccessPoint &AP)
          "-F",
          "/etc/wrt/ssh_config",
          "-pr",
-         // "-i",
-         // identity.c_str(),
          localConfig.c_str(),
          target.c_str(),
          (char *)NULL);
