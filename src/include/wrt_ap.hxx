@@ -23,24 +23,32 @@
 #include <unordered_map>
 
 
-namespace wrt {
+namespace wrt
+{
 
-class AccessPoint {
+class AccessPoint
+{
 public:
-  enum class Type { none,
-                    tl_wr703n,
-                    tl_mr3020,
-                    wrt54g,
-                    whr_hp_g300n, };
+  enum class Type
+  {
+    none,
+    tl_wr703n,
+    tl_mr3020,
+    wrt54g,
+    whr_hp_g300n,
+  };
 
   AccessPoint() = default;
   AccessPoint(std::string MACAddress);
-  AccessPoint(const char* MACAddress);
+  AccessPoint(const char *MACAddress);
   AccessPoint(std::string Name, std::string MACAddress);
-  AccessPoint(const char* Name, const char* MACAddress);
+  AccessPoint(const char *Name, const char *MACAddress);
   AccessPoint(std::string Name, std::string MACAddress, AccessPoint::Type Type);
-  AccessPoint(const char* Name, const char* MACAddress, AccessPoint::Type Type);
+  AccessPoint(const char *Name, const char *MACAddress, AccessPoint::Type Type);
+  AccessPoint(std::string Name, std::string MACAddress, std::string Type);
+  AccessPoint(const char *Name, const char *MACAddress, const char *Type);
 
+  bool hasMAC();
   bool hasName();
   bool hasType();
   bool hasIPv4();
@@ -77,38 +85,42 @@ public:
   std::string IPv6Address();
 
   //Comparator
-  int compare(AccessPoint const& ap);
+  int compare(AccessPoint const &ap);
 
   //Static utility functions
-  static void FormatMAC(std::string& MACtoFormat);
-  static void MACtoEUI64(std::string& MACtoMutate);
+  static void FormatMAC(std::string &MACtoFormat);
+  static void MACtoEUI64(std::string &MACtoMutate);
   static std::string TypeToString(AccessPoint::Type Type);
   static AccessPoint::Type StringToType(std::string type);
 
-  bool operator == (AccessPoint const& ap) {
+  bool operator == (AccessPoint const &ap)
+  {
     return (bool) !compare(ap);
   }
 
-  bool operator != (AccessPoint const& ap) {
+  bool operator != (AccessPoint const &ap)
+  {
     return (bool) compare(ap);
   }
 
-  bool operator < (AccessPoint const& ap) {
+  bool operator < (AccessPoint const &ap)
+  {
     return (bool) compare(ap) < 0;
   }
 
-  bool operator > (AccessPoint const& ap) {
+  bool operator > (AccessPoint const &ap)
+  {
     return (bool) compare(ap) > 0;
   }
 
 private:
-  AccessPoint::Type ap_type_                  = Type::none;
-  std::string       ap_name_                  = "";
-  std::string       mac_address_              = "00:00:00:00:00:00";
-  std::string       ipv4_address_             = "0.0.0.0";
-  std::string       link_local_ipv4_address_  = "0.0.0.0";
-  std::string       ipv6_address_             = "::0";
-  std::string       link_local_ipv6_address_  = "::0";
+  AccessPoint::Type ap_type_                 = Type::none;
+  std::string       ap_name_                 = "",
+                    mac_address_             = "00:00:00:00:00:00",
+                    ipv4_address_            = "0.0.0.0",
+                    link_local_ipv4_address_ = "0.0.0.0",
+                    ipv6_address_            = "::0",
+                    link_local_ipv6_address_ = "::0";
 };
 
 }
