@@ -5,11 +5,124 @@
  *                                                                            *
  * This file is the main driver program for the WRT config system.            *
  * As of now its singular purpose is to push configuration settings           *
- * over SSH using libssh.                                                     *
+ * over SSH.                                                                  *
  *                                                                            *
  ******************************************************************************/
 
-#include "main.hxx"
+// SYSTEM LIBRARIES
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
+#include <sys/wait.h>
+
+// C LIBRARIES
+#include <getopt.h>
+
+// STL LIBRARIES
+#include <fstream>
+#include <iostream>
+#include <cstdlib>
+#include <cerrno>
+#include <exception>
+#include <stdexcept>
+#include <iomanip>
+#include <unordered_map>
+
+// LIBCONFIG DEPENDENCY
+#include <libconfig.h++>
+
+// WRT OBJECTS
+#include <wrt_ap.hxx>
+#include <wrt_io.hxx>
+#include <wrt_exception.hxx>
+
+using namespace wrt;
+
+//typedef for hash list of APs known
+typedef std::unordered_map<std::string, AccessPoint> APList;
+
+//Exit codes
+const auto kExitSuccess            = EXIT_SUCCESS,
+           kExitFailure            = EXIT_FAILURE,
+           kForever                = 1;
+
+//Config defaults
+const auto kDefaultConfigFile("/etc/wrt/wrt.cfg");
+const auto kDefaultConfigDirectory("/etc/wrt/");
+
+const auto kDefaultRemoteConfigDirectory("/etc/config/");
+const auto kDefaultCertDirectory("/etc/dropbear/");
+
+const auto kDefaultKeyType("id_dsa");
+const auto kDefaultInterface("eth0");
+
+//Root-less configuration elements
+const auto kVersion("Version");             //NEW!!!
+
+//Root Configuration Elements - Categories!
+const auto kConfigRoot("Configuration");    //NEW!!!
+const auto kUsersRoot("Users");             //NEW!!!
+const auto kPathsRoot("Paths");             //NEW!!!
+const auto kLogRoot("Logs");                //NEW!!!
+const auto kWireless("Wireless");           //NEW!!!
+
+const auto kLocalUser("Local_User");
+const auto kRemoteUser("Remote_User");
+const auto kCertificates("Cert_Dir");
+const auto kConfigDirectory("Config_Dir");
+const auto kConfigurationFile("Config_File");
+const auto kLogDirectory("Log_Dir");
+const auto kLogLevel("Log_Level");
+const auto kPIDFile("PID_File");
+const auto kSSID("SSID");
+const auto kCrypto("Encryption");
+const auto kPassword("Wifi_Password");
+const auto kAPList("Access_Points");
+const auto kAPName("Name");
+const auto kAPType("Type");
+const auto kAPMAC("MAC");
+const auto kAPIPv6("IPv6");
+const auto kAPIPv4("IPv4");
+
+//Configuration Functions
+static void ParseCommandLineOptions(int argc, char **argv);
+
+static libconfig::Config &ReadConfigFile(std::string file = kDefaultConfigFile);
+static void WriteConfigFile(libconfig::Config &settings,
+                            std::string file = kDefaultConfigFile);
+
+//Utility Functions
+static APList &GetAPList(libconfig::Config &config);
+static int ForkChild(int pipefd[] = NULL);
+static int WaitForChild(int PID, int options = 0);
+
+//Print command block
+static void PrintAP(AccessPoint &AP, int index, int depth = 0);
+static void NameAP(AccessPoint &AP, int index, int depth = 0);
+static void ListAP(AccessPoint &AP, int depth = 0);
+
+//Add command block
+static void AddAPConfig(AccessPoint &AP);
+static void AddAPKey(AccessPoint &AP);
+
+//Remove command block
+static void RemoveAPConfig(AccessPoint &AP);
+static void RemoveAPKey(AccessPoint &AP);
+
+//Push command block
+static bool CheckConfig(AccessPoint &AP);
+static void PushConfig(AccessPoint &AP);
+static void PushWirelessConfig(AccessPoint &AP);
+
+//Command line output functions / command blocks
+static void Help();
+static void Usage();
+static void Version();
+
+/******************************************************************************
+ * PROGRAM MAIN                                                     [main-MA] *
+ ******************************************************************************/
 
 //WRT output stream
 WRTout     wout,    //SLOPPY - refactor later
@@ -31,46 +144,6 @@ auto Push   = false,
      Add    = false,
      Remove = false;
 }
-
-//Configuration Functions
-void ParseCommandLineOptions(int argc, char **argv);
-
-libconfig::Config &ReadConfigFile(std::string file = kDefaultConfigFile);
-void WriteConfigFile(libconfig::Config &settings,
-                     std::string file = kDefaultConfigFile);
-
-//Utility Functions
-APList &GetAPList(libconfig::Config &config);
-int ForkChild(int pipefd[] = NULL);
-int WaitForChild(int PID, int options = 0);
-
-//Print command block
-void PrintAP(AccessPoint &AP, int index, int depth = 0);
-void NameAP(AccessPoint &AP, int index, int depth = 0);
-void ListAP(AccessPoint &AP, int depth = 0);
-
-
-//Add command block
-void AddAPConfig(AccessPoint &AP);
-void AddAPKey(AccessPoint &AP);
-
-//Remove command block
-void RemoveAPConfig(AccessPoint &AP);
-void RemoveAPKey(AccessPoint &AP);
-
-//Push command block
-bool CheckConfig(AccessPoint &AP);
-void PushConfig(AccessPoint &AP);
-void PushWirelessConfig(AccessPoint &AP);
-
-//Command line output functions / command blocks
-void Help();
-void Usage();
-void Version();
-
-/******************************************************************************
- * PROGRAM MAIN                                                     [main-MA] *
- ******************************************************************************/
 
 /**
  * Where the computer magic occurs
@@ -185,6 +258,17 @@ int main(int argc, char *argv[])
 
           } else {
             PushConfig(AP.second);
+          }
+
+          if ((child = ForkChild())) {
+            if ((status = WaitForChild(child))) {
+              wout << Output::Verbosity::kDebug
+                   << "Subprocess " << child << ": Exited with status "
+                   << status << std::endl;
+            }
+
+          } else {
+            PushWirelessConfig(AP.second);
           }
 
           if ((child = ForkChild())) {
@@ -1031,6 +1115,40 @@ void PushConfig(AccessPoint &AP)
 
 void PushWirelessConfig(AccessPoint &AP)
 {
+
+  std::exit(kExitSuccess);
+}
+
+void CommitWirelessConfig(AccessPoint &AP)
+{
+  std::string target;
+  auto        command = "uci set wireless.@wifi-device[0].disabled=0;"
+                        "uci commit wireless;"
+                        "wifi";
+
+  if (AP.hasIPv4()) {
+    target += AP.getIPv4();
+
+  } else if (AP.hasIPv6()) {
+    target += '[';
+    target += AP.getIPv6();
+    target += ']';
+
+  } else if (AP.hasLinkLocalIPv6()) {
+    target += '[';
+    target += AP.getLinkLocalIPv6();
+    target += '%';
+    target += kDefaultInterface;
+    target += ']';
+  }
+
+  execlp("ssh",
+         "ssh",
+         "-F",
+         "/etc/wrt/ssh_config",
+         target.c_str(),
+         command,
+         (char *)NULL);
 
   std::exit(kExitSuccess);
 }
