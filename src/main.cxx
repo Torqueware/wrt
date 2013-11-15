@@ -1065,19 +1065,9 @@ bool CheckConfig(AccessPoint &AP)
   return true;
 }
 
-/**
- * Push configuration using fork, scp, and ssh
- *
- * @method  PushConfig
- *
- * @param   AP          [description]
- */
-void PushConfig(AccessPoint &AP)
+std::string getTarget(AccessPoint &AP)
 {
-  std::string localConfig = State.lookup(kConfigDirectory);
   std::string target;
-
-  localConfig += "config";
 
   if (AP.hasIPv4()) {
     target += AP.getIPv4();
@@ -1100,6 +1090,25 @@ void PushConfig(AccessPoint &AP)
     target += ':';
     target += kDefaultRemoteConfigDirectory;
   }
+
+  return target;
+}
+
+/**
+ * Push configuration using fork, scp, and ssh
+ *
+ * @method  PushConfig
+ *
+ * @param   AP          [description]
+ */
+void PushConfig(AccessPoint &AP)
+{
+  std::string localConfig = State.lookup(kConfigDirectory);
+  std::string target(getTarget(AP));
+
+  localConfig += "config";
+  target      += ':';
+  target      += kDefaultRemoteConfigDirectory;
 
   execlp("scp",
          "scp",
@@ -1115,32 +1124,37 @@ void PushConfig(AccessPoint &AP)
 
 void PushWirelessConfig(AccessPoint &AP)
 {
+  std::string target(getTarget(AP)),
+      command("uci set wireless.@wifi-device[0].disabled=0;");
+  std::string ssid   = State.lookup(kSSID),
+              crypto = State.lookup(kCrypto),
+              secret = State.lookup(kPassword);
+
+  command += "uci set wireless.@wifi-iface[0].ssid= ";
+  command += ssid;
+  command += ';';
+  command += "uci set wireless.@wifi-iface[0].encryption= ";
+  command += crypto;
+  command += ';';
+  command += "uci set wireless.@wifi-iface[0].key= ";
+  command += secret;
+  command += ";uci commit wireless";
+
+  execlp("ssh",
+         "ssh",
+         "-F",
+         "/etc/wrt/ssh_config",
+         target.c_str(),
+         command.c_str(),
+         (char *)NULL);
 
   std::exit(kExitSuccess);
 }
 
-void CommitWirelessConfig(AccessPoint &AP)
+void CommitConfig(AccessPoint &AP)
 {
-  std::string target;
-  auto        command = "uci set wireless.@wifi-device[0].disabled=0;"
-                        "uci commit wireless;"
-                        "wifi";
-
-  if (AP.hasIPv4()) {
-    target += AP.getIPv4();
-
-  } else if (AP.hasIPv6()) {
-    target += '[';
-    target += AP.getIPv6();
-    target += ']';
-
-  } else if (AP.hasLinkLocalIPv6()) {
-    target += '[';
-    target += AP.getLinkLocalIPv6();
-    target += '%';
-    target += kDefaultInterface;
-    target += ']';
-  }
+  std::string target(getTarget(AP));
+  auto        command = "uci commit; wifi up";
 
   execlp("ssh",
          "ssh",
