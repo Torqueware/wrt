@@ -9,28 +9,81 @@
  *                                                                            *
  ******************************************************************************/
 
-#include "main.hxx"
+// SYSTEM LIBRARIES
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
+#include <sys/wait.h>
 
-//WRT output stream
-WRTout     wout,    //SLOPPY - refactor later
-           werr,    //TODO
-           wlog,    //TODO
-           wsyslog; //TODO
+// C LIBRARIES
+#include <getopt.h>
 
-//Global flags and functions that must never be used by others
-namespace
-{
-APList PendingNodes;
+// STL LIBRARIES
+#include <fstream>
+#include <iostream>
+#include <cstdlib>
+#include <cerrno>
+#include <exception>
+#include <stdexcept>
+#include <iomanip>
+#include <unordered_map>
 
-auto ConfigFile(kDefaultConfigFile);  //make this an extern also
-libconfig::Config State;              //make this extern later
+// LIBCONFIG DEPENDENCY
+#include <libconfig.h++>
 
-auto Push   = false,
-     Force  = false,
-     List   = false,
-     Add    = false,
-     Remove = false;
-}
+// WRT OBJECTS
+#include <wrt_ap.hxx>
+#include <wrt_io.hxx>
+#include <wrt_exception.hxx>
+
+using namespace wrt;
+
+//typedef for hash list of APs known
+typedef std::unordered_map<std::string, AccessPoint> APList;
+
+//Exit codes
+const auto kExitSuccess            = EXIT_SUCCESS,
+           kExitFailure            = EXIT_FAILURE,
+           kForever                = 1;
+
+//Config defaults
+const auto kDefaultConfigFile("/etc/wrt/wrt.cfg");
+const auto kDefaultConfigDirectory("/etc/wrt/");
+
+const auto kDefaultRemoteConfigDirectory("/etc/config/");
+const auto kDefaultCertDirectory("/etc/dropbear/");
+
+const auto kDefaultKeyType("id_dsa");
+const auto kDefaultInterface("eth0");
+
+//Root-less configuration elements
+const auto kVersion("Version");             //NEW!!!
+
+//Root Configuration Elements - Categories!
+const auto kConfigRoot("Configuration");    //NEW!!!
+const auto kUsersRoot("Users");             //NEW!!!
+const auto kPathsRoot("Paths");             //NEW!!!
+const auto kLogRoot("Logs");                //NEW!!!
+const auto kWireless("Wireless");           //NEW!!!
+
+const auto kLocalUser("Local_User");
+const auto kRemoteUser("Remote_User");
+const auto kCertificates("Cert_Dir");
+const auto kConfigDirectory("Config_Dir");
+const auto kConfigurationFile("Config_File");
+const auto kLogDirectory("Log_Dir");
+const auto kLogLevel("Log_Level");
+const auto kPIDFile("PID_File");
+const auto kSSID("SSID");
+const auto kCrypto("Encryption");
+const auto kPassword("Wifi_Password");
+const auto kAPList("Access_Points");
+const auto kAPName("Name");
+const auto kAPType("Type");
+const auto kAPMAC("MAC");
+const auto kAPIPv6("IPv6");
+const auto kAPIPv4("IPv4");
 
 //Configuration Functions
 void ParseCommandLineOptions(int argc, char **argv);
@@ -48,7 +101,6 @@ int WaitForChild(int PID, int options = 0);
 void PrintAP(AccessPoint &AP, int index, int depth = 0);
 void NameAP(AccessPoint &AP, int index, int depth = 0);
 void ListAP(AccessPoint &AP, int depth = 0);
-
 
 //Add command block
 void AddAPConfig(AccessPoint &AP);
@@ -71,6 +123,27 @@ void Version();
 /******************************************************************************
  * PROGRAM MAIN                                                     [main-MA] *
  ******************************************************************************/
+
+//WRT output stream
+WRTout     wout,    //SLOPPY - refactor later
+           werr,    //TODO
+           wlog,    //TODO
+           wsyslog; //TODO
+
+//Global flags and functions that must never be used by others
+namespace
+{
+APList PendingNodes;
+
+auto ConfigFile(kDefaultConfigFile);  //make this an extern also
+libconfig::Config State;              //make this extern later
+
+auto Push   = false,
+     Force  = false,
+     List   = false,
+     Add    = false,
+     Remove = false;
+}
 
 /**
  * Where the computer magic occurs
