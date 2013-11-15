@@ -138,11 +138,16 @@ APList PendingNodes;
 auto ConfigFile(kDefaultConfigFile);  //make this an extern also
 libconfig::Config State;              //make this extern later
 
-auto Push   = false,
-     Force  = false,
-     List   = false,
-     Add    = false,
-     Remove = false;
+auto    Push   = false,
+        Force  = false,
+        List   = false,
+        Add    = false,
+        Remove = false;
+
+WRTout  out,
+        err,
+        log,
+        sys;
 }
 
 /**
@@ -150,7 +155,8 @@ auto Push   = false,
  */
 int main(int argc, char *argv[])
 {
-  try {
+  try { // <---- fucking disgusting - depricate this trash
+
     ParseCommandLineOptions(argc, argv);
     libconfig::Config &config = ReadConfigFile(ConfigFile);
 
