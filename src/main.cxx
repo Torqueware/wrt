@@ -1,293 +1,519 @@
-/***********************************************************************
- * main.cxx                                                            *
- *                                                                     *
- * Copyright 2013 William Patrick Millard <wmillard1@gmail.com>        *
- *                                                                     *
- * This file is the main driver program for the WRT config system.     *
- * As of now its singular purpose is to push configuration settings    *
- * over SSH using libssh.                                              *
- *                                                                     *
- **********************************************************************/
+/******************************************************************************
+ * main.cxx                                                                   *
+ *                                                                            *
+ * Copyright 2013 William Patrick Millard <wmillard1@gmail.com>               *
+ *                                                                            *
+ * This file is the main driver program for the WRT config system.            *
+ * As of now its singular purpose is to push configuration settings           *
+ * over SSH using libssh.                                                     *
+ *                                                                            *
+ ******************************************************************************/
 
 #include <main.hxx>
 
 using namespace wrt;
 
-int main(int argc, char* argv[]) {
-  try {
-    CLOptions     &flags    = ParseCommandLineOptions(argc, argv);
-    Configuration &settings = ReadConfigFile(ConfigFile);
-    APList        &APs      = ParseAPList(settings);
-
-    if (flags["list"]) {
-      if (LogLevel >= DEFAULT_LOG_LEVEL) {
-        std::cout << *argv
-                  << ": Managed Access Points:"
-                  << std::endl;
-      }
-
-      ListManagedAPs(APs);
-    
-    } else if (flags["add"] | flags["remove"]) {
-      std::cout << "TODO - far off" << std::endl;
-    
-    } else {
-      if (LogLevel >= DEFAULT_LOG_LEVEL) {
-        if (flags["push"]) {
-          std::cout << *argv
-                    << ": Overwrite configuration on managed nodes."
-                    << std::endl;
-        } else {
-          std::cout << *argv
-                    << ": Updating configuration on managed nodes."
-                    << std::endl;
-        }
-      }
-
-      for (auto AP : APs) {
-        if (LogLevel >= DEFAULT_LOG_LEVEL) {
-          std::cout << "\t" << AP.first << std::endl;
-        }
-
-        PushConfiguration(settings, AP.second);
-      }
-    
-    }
-  
-  } catch (const std::exception &exception) {
-    print_exception(exception);
-    
-    exit(EXIT_FAILURE);
-  }
-
-  exit(EXIT_SUCCESS);
-}
-
-/***********************************************************************
- * CONFIGURATION FUNCTIONS                                   [main-CF] *
- **********************************************************************/
+/******************************************************************************
+ * CONFIGURATION FUNCTIONS                                          [main-CF] *
+ ******************************************************************************/
 
 /* Parse command line info */
-CLOptions& ParseCommandLineOptions(int argc, char* argv[]) {
-  static CLOptions Flags;
-  int    command_line_option = 0;
-  int    option_index        = 0;
+libconfig::Setting& ParseCommandLineOptions(int argc, char* argv[]) {
+  std::string failure_message = "ParseCommandLineOptions(int, char *) failed.";
+  static libconfig::Config parsedData;
 
-  do {
-    command_line_option = getopt_long(argc, argv, "lpuvbhVc:a:r:",
-                                      long_options, &option_index);
+  try {
 
-    switch(command_line_option) {
-      case 0:
-        //TODO
-        break;
+    libconfig::Setting &addList =
+      parsedData.getRoot().add(kAddList, libconfig::Setting::TypeArray);
+    libconfig::Setting &removeList =
+      parsedData.getRoot().add(kRemoveList, libconfig::Setting::TypeArray);
 
-      case 'c':
-        ConfigFile = std::string(optarg);
-        break;
-
-      case 'l':
-        Flags[std::string("list")] = true;
-        break;
-
-      case 'a':
-        Flags[std::string("add")] = true;
-        //TODO
-        break;
-
-      case 'r':
-        Flags[std::string("remove")] = true;
-        //TODO
-        break;
-
-      case 'p':
-        Flags[std::string("push")] = true;
-        break;
-
-      case 'u':
-        Usage();
-
-      case 'v':
-        LogLevel++;
-        break;
-
-      case 'b':
-        LogLevel--;
-        break;
-
-      case 'h':
-        Help();
-
-      case 'V':
-        Version();
-
-      default:
-        //TODO
-        break;
+    int command_line_option = 0,
+        option_index        = 0;
     
-    }
-  
-  } while (command_line_option != -1);
+    do {
+      command_line_option = getopt_long(argc, argv, "lfpuvbhVc:a:r:",
+                                        long_options, &option_index);
 
-  if (LogLevel > DEFAULT_LOG_LEVEL) {
-    if (LogLevel > VERBOSE_LOG_LEVEL) {
-      std::cout << "ParseCommandLineOptions(" << argc << ", [";
-    
-      for(int i = 1; i < argc; ++i) {
-        std::cout << argv[i] << " ";
+      switch(command_line_option) {
+        case 0:
+          break;
+
+        case 'c':
+          ConfigFile = std::string(optarg);
+          break;
+
+        case 'l':
+          List = true;
+          break;
+
+        case 'a':
+          Add = true;
+          addList.add(libconfig::Setting::TypeString) = argv[optind - 1];
+          if (optind == argc) { Usage(); }
+          addList.add(libconfig::Setting::TypeString) = argv[optind];
+          optind++;
+          break;
+
+        case 'r':
+          Remove = true;
+          removeList.add(libconfig::Setting::TypeString) = argv[optind - 1];
+          break;
+
+        case 'p':
+          Push = true;
+          break;
+
+        case 'f':
+          Force = true;
+          break;
+
+        case 'v':
+          LogLevel++;
+          break;
+
+        case 'b':
+          LogLevel--;
+          break;
+
+        case 'u':
+          Usage(); //these functions cause immediate termination
+
+        case 'h':
+          Help(); //these functions cause immediate termination
+
+        case 'V':
+          Version(); //these functions cause immediate termination
+
+        default:
+          break;
       }
 
-      std::cout << "])" << std::endl << std::endl;
+    } while (command_line_option != -1);
+
+    if (LogLevel > kDefaultLogLevel) {
+      if (LogLevel < kVeryVerboseLogLevel) {
+        std::cout << "ParseCommandLineOptions:" << std::endl;
+
+      } else {
+        std::cout << "ParseCommandLineOptions(" << argc << ", [";
     
+        for(int i = 1; i < argc; ++i) {
+          std::cout << argv[i] << " ";
+        }
+
+        std::cout << "])" << std::endl << std::endl;
+      }
+
+      std::cout << "WRT Configuration:" << std::endl
+                << "\tConfig File: "
+                << ConfigFile << std::endl
+                << "\tVerbosity: ";
+      
+      switch(LogLevel) {
+        case kBriefLogLevel:
+          std::cout << "brief" << std::endl;
+          break;
+
+        case kDefaultLogLevel:
+          std::cout << "normal" << std::endl;
+          break;
+
+        case kVerboseLogLevel:
+          std::cout << "verbose" << std::endl;
+          break;
+
+        case kVeryVerboseLogLevel:
+          std::cout << "very verbose" << std::endl;
+          break;
+
+        default:
+          if (LogLevel > kVeryVerboseLogLevel) {
+            std::cout << "silly (" << LogLevel << ")" << std::endl;
+          }
+          break;
+      }
+
+      std::cout << "WRT Program State" << std::endl;
+      std::cout << "\tPush   flag: " << Push << std::endl;
+      std::cout << "\tForce  flag: " << Force << std::endl;
+      std::cout << "\tList   flag: " << List << std::endl;
+      std::cout << "\tAdd    flag: " << Add << std::endl;
+      std::cout << "\tRemove flag: " << Remove << std::endl;
+      std::cout << std::endl;
     }
 
-    std::cout << "WRT Configuration:" << std::endl
-              << "\tFlag: config_file, Value: "
-              << ConfigFile << std::endl
-              << "\tFlag:   verbosity, Value: "
-              << LogLevel << std::endl;
-
-    for (auto &flag : Flags) {
-      std::cout << "\tFlag:"
-                << std::setw(12) << flag.first
-                << std::setw(0)  << ", Value: " << flag.second
-                << std::endl;
-    
-    }
-
-    std::cout << std::endl;
+  } catch (...) {
+    std::throw_with_nested(std::runtime_error(failure_message));
   }
 
-  return(Flags);
+  return (parsedData.getRoot());
 }
 
 /* Open config file for later reading */
-Configuration& ReadConfigFile(std::string file) {
-         std::string       error_message = "ReadConfigFile() failed";
+libconfig::Config& ReadConfigFile(std::string file) {
+  std::string failure_message = "ReadConfigFile(std::string) failed.",
+              read_error = " could not be read from disk.";
   static libconfig::Config config;
 
-  try {
-    config.readFile(file.c_str());
-  
-  } catch(...) {
-      std::throw_with_nested(std::runtime_error(error_message));
-  }
-  
-  return(config);
-}
+  if (!config.exists(kAPList)) {
+    try {
+      try {
 
-/* Parse list of APs managed from the config file */
-APList& ParseAPList(Configuration &settings) {
-  std::string error_message = "ParseAPList() failed";
-  libconfig::Setting &root  = settings.getRoot(); 
-  static APList APs;
+        config.readFile(file.c_str());
 
-  try {
-    int count = root[CFG_AP_LIST].getLength();
-    
-  for(int i = 0; i < count; ++i) {
-      const libconfig::Setting &AP = root[CFG_AP_LIST][i];
-      std::string name, mac;
-
-      if (AP.lookupValue(CFG_AP_LIST_NAME, name)
-          && AP.lookupValue(CFG_AP_LIST_MAC, mac)) {
-          APs[name] = AccessPoint(mac);
+      } catch (libconfig::FileIOException &e) {  
+        std::throw_with_nested(std::runtime_error(ConfigFile + read_error));
       }
-    }
-  
-  } catch(...) {
-      std::throw_with_nested(std::runtime_error(error_message));
-  }
 
-  return(APs);
+    } catch (...) {
+        std::throw_with_nested(std::runtime_error(failure_message));
+    }
+  }
+  
+  return (config);
 }
 
-/***********************************************************************
- * DRIVER ROUTINES                                           [main-DR] *
- **********************************************************************/
+/* Writes current configuration to the config file */
+void WriteConfigFile(libconfig::Config& file) {
+  std::string failure_message = "WriteConfigFile(libconfig::Config &) failed.",
+              write_error = " could not be written to disk.";
 
-/* Print list of managed APs from the current config */
-void ListManagedAPs(APList &APs) {
-  int item = 1;
-  
   try {
-    for(auto AP : APs) {
-      std::cout << item++ << ": " << AP.first << ": <TODO type> MAC "
-                << AP.second.getMAC() << std::endl
-                << "\tIPv4 " << AP.second.getIPv4Address() << std::endl
-                << "\tIPv6 " << AP.second.getIPv6Address() << std::endl;
+    try {
+
+     file.writeFile(ConfigFile.c_str());
+
+    } catch (libconfig::FileIOException &e) {
+      std::throw_with_nested(std::runtime_error(ConfigFile + write_error));
     }
 
-    std::cout << std::endl;
-  
-  } catch(...) {
-    std::string error_message = "ListManagedAPs(APList &) failed";
-    std::throw_with_nested(std::runtime_error(error_message));
+  } catch (...) {
+    std::throw_with_nested(std::runtime_error(failure_message));
   }
 
   return;
 }
 
+/******************************************************************************
+ * UTILITY FUNCTIONS                                                [main-UT] *
+ ******************************************************************************/
+libconfig::Setting& GetConfigSettings(void) {
+  std::string failure_message = "GetConfigSettings(void) failed.";
+
+  try {
+
+    return(ReadConfigFile(ConfigFile).getRoot());
+
+  } catch (...) {
+    std::throw_with_nested(std::runtime_error(failure_message));
+  }
+}
+
+APList& GetAddList(libconfig::Setting& parse) {
+  std::string failure_message = "GetAddList(libconfig::Settings &) failed.";
+  static APList pendingAdditions;
+
+  if (pendingAdditions.empty()) {
+    try {
+      
+      libconfig::Setting &list = parse[kAddList];
+
+      for (int i = 0, size = list.getLength(); i < size - 1; i++) {
+        std::string name = list[i], mac = list[i+1];
+         pendingAdditions[name] = AccessPoint(name, mac);
+         i++;
+      }
+
+    } catch (...) {
+      std::throw_with_nested(std::runtime_error(failure_message));
+    }
+  }
+
+  return(pendingAdditions);
+}
+
+APList& GetRemoveList(libconfig::Setting& parse) {
+  std::string failure_message = "GetAddList(libconfig::Settings &) failed.";
+  static APList pendingRemovals;
+
+  if(pendingRemovals.empty()) {
+    try {
+
+      libconfig::Setting &list = parse[kRemoveList];
+
+      for (int i = 0, size = list.getLength(); i < size; i++) {
+        std::string name = list[i];
+
+        pendingRemovals[name] = AccessPoint(name);
+      }
+
+    } catch (...) {
+      std::throw_with_nested(std::runtime_error(failure_message));
+    }
+  }
+
+  return(pendingRemovals);
+}
+
+/* Parse list of APs managed from the config file */
+APList& GetAPList(libconfig::Config &config) {
+  std::string failure_message = "GetAPList(libconfig::Config &) failed.";
+  static APList APs;
+  
+  if (APs.empty()) {
+    try {
+
+      libconfig::Setting &list = config.getRoot();
+      int listCount = list[kAPList].getLength();
+    
+      for(int i = 0; i < listCount; ++i) {
+        const libconfig::Setting &AP = list[kAPList][i];
+        std::string name = list[kAPName],
+                    mac  = list[kAPMAC],
+                    ipv4 = list[kAPIPv4],
+                    ipv6 = list[kAPIPv6];
+
+        // if (AP.lookupValue(kAPName, name) 
+        //     && AP.lookupValue(kAPMAC, mac)) {
+          APs[name] = AccessPoint(name, mac);
+          APs[name].setIPv4(ipv4);
+          APs[name].setIPv6(ipv6);
+        // }
+      }
+  
+    } catch(...) {
+      std::throw_with_nested(std::runtime_error(failure_message));
+    }
+  }
+
+  return(APs);
+}
+
+/******************************************************************************
+ * DRIVER FUNCTIONS                                                 [main-DR] *
+ ******************************************************************************/
+
+/* Print list of managed APs from the current config */
+void ListAPs(libconfig::Config& config) {
+  std::string failure_message = "ListAPs(libconfig::Config &) failed.";
+  
+if (LogLevel >= kDefaultLogLevel) {
+  std::cout << "wrt: Managed Access Points:" << std::endl;
+}
+
+  try {
+
+    APList APs = GetAPList(config);
+    int item = 1;
+
+    for(auto AP : APs) {
+      AccessPoint thisAP = AP.second;
+
+      std::cout << item++ << ": " << thisAP.getName()
+                << ": " << thisAP.getType() << std::endl
+                << "\tMAC " << thisAP.getMAC() << std::endl
+                << "\tIPv4 " << thisAP.autoIPv4() << std::endl
+                << "\tIPv6 " << thisAP.autoIPv6() << std::endl;
+    }
+    std::cout << std::endl;
+  
+  } catch(...) {
+    std::throw_with_nested(std::runtime_error(failure_message));
+  }
+
+  return;
+}
+
+/* Adds AP to the config file */
+void AddAPConfig(libconfig::Config &config, AccessPoint &AP) {
+  std::string already_exists = "\"" + AP.getName() + "\" already exists!",
+             failure_message = "AddAPConfig(libconfig::Config &, "
+                               "AccessPoint &AP) failed.";
+
+  if (LogLevel >= kDefaultLogLevel) {
+    std::cout << "wrt: Adding \"" << AP.getName()
+              << "\" to config file:" << std::endl;
+  }
+
+  try {
+
+    libconfig::Setting &APList = config.lookup(kAPList);
+
+    for (int i = 0, size = APList.getLength(); i < size; i++) {
+      std::string name = APList[i][kAPName],
+                  mac  = APList[i][kAPMAC];
+
+      if (name == AP.getName() || mac == AP.getMAC()) {
+        throw(std::runtime_error(already_exists));
+      }
+    }
+
+    libconfig::Setting &NewEntry = APList.add(libconfig::Setting::TypeGroup);
+    NewEntry.add(kAPName, libconfig::Setting::TypeString) = AP.getName();
+    NewEntry.add(kAPMAC,  libconfig::Setting::TypeString) = AP.getMAC();
+    NewEntry.add(kAPIPv4, libconfig::Setting::TypeString) = AP.autoIPv4();
+    NewEntry.add(kAPIPv6, libconfig::Setting::TypeString) = AP.autoIPv6();
+
+    WriteConfigFile(config);
+
+  } catch(std::runtime_error const& e) {
+    print_exception(e);
+  } catch(...) {
+    std::throw_with_nested(std::runtime_error(failure_message));
+  }
+
+  return;
+}
+
+void AddAPKey(libconfig::Config &config, AccessPoint &AP) {
+  std::string failure_message = "AddAPKey(libconfig::Config"
+                                " &, AccessPoint &) failed.";
+
+  if (LogLevel >= kDefaultLogLevel) {
+    std::cout << "wrt: Performing handshake with " << AP.getName()
+              << " to update known_hosts file:" << std::endl;
+  }
+
+  try {
+    ssh::Session KeyExchange;
+    std::string  user = config.lookup(kRemoteUser),
+                 cert = config.lookup(kCertificates);
+
+
+    //SSH Session initial setup
+    if(AP.getIPv4().empty()) { //TODO: make this default to 6 later
+      KeyExchange.setOption(SSH_OPTIONS_HOST, AP.autoIPv6());
+    } else { //should not execute right now
+      KeyExchange.setOption(SSH_OPTIONS_HOST, AP.getIPv4());
+    }
+   
+    KeyExchange.setOption(SSH_OPTIONS_LOG_VERBOSITY, &LogLevel);
+    KeyExchange.setOption(SSH_OPTIONS_USER, user);
+    KeyExchange.setOption(SSH_OPTIONS_SSH_DIR, cert);
+    KeyExchange.setOption(SSH_OPTIONS_TIMEOUT, 5);
+    
+    //SSH Session connect
+    KeyExchange.connect();
+    KeyExchange.userauthPublickeyAuto();
+
+    switch (KeyExchange.isServerKnown()) {
+      case SSH_SERVER_FILE_NOT_FOUND:
+      /* Doesn't matter, we will make one */
+      case SSH_SERVER_NOT_KNOWN:
+        if(Force) {
+          KeyExchange.writeKnownhost();
+        } else {
+          std::string input;
+
+          ssh::Key k = ssh::Key(KeyExchange);
+          std::cout << "wrt: '" << AP.getName() << "' public key hash: "
+                    << k.getHash() << std::endl;
+          do {
+            std::cout << "Add key to known hosts [Y/n]? ";
+            std::cin >> input;
+
+            if (input == "y" || input == "Y") {
+              KeyExchange.writeKnownhost();
+              break;
+            }
+          } while ( !std::cin.fail() || input == "n" || input == "N");
+        }
+
+      case SSH_SERVER_KNOWN_OK:
+        break; /* Why are we adding it in the first place? */ 
+
+      case SSH_SERVER_KNOWN_CHANGED:
+        throw std::runtime_error("Server previously known, key has changed. "
+                                 "Remove the offending key and rerun wrt.");
+
+      case SSH_SERVER_FOUND_OTHER:
+        throw std::runtime_error("Remote host's public key not found, but "
+                                 "another key exists! This is potentially "
+                                 "a man-in-the-middle attack! Aborting for"
+                                 "security reasons!");
+      
+      case SSH_SERVER_ERROR:
+        throw std::runtime_error("Remote server error.");
+      
+      default:
+        throw std::runtime_error(std::string("Out of Range: Error Exception! "
+                                             "Something is really broke!"));
+    }
+
+    KeyExchange.disconnect();
+
+  } catch (...) {
+    std::throw_with_nested(std::runtime_error(failure_message));
+  }
+
+  return;
+}
+
+/* Removes AP from config file, and removes public key from knownhosts */
+void RemoveAPConfig(libconfig::Config& config, AccessPoint &AP) {
+  std::string error_message = "RemoveAPConfig() failed";
+
+  if (LogLevel >= kDefaultLogLevel) {
+    std::cout << "wrt: Removing \"" << AP.getName()
+              << "\" from config file." << std::endl;
+  }
+
+  try {
+    try {
+
+      WriteConfigFile(config);
+
+    } catch (...) {
+      std::throw_with_nested(std::runtime_error(error_message));
+    }
+  } catch (const std::exception &exception) {
+    print_exception(exception);
+  }
+
+  return;
+}
+
+void RemoveAPKey(libconfig::Config& config, AccessPoint &APInfo) {
+  std::string error_message = "RemoveAPKey() failed";
+
+  if (LogLevel >= kDefaultLogLevel) {
+    std::cout << "wrt: Removing " << APInfo.getName()
+              << " key from known_hosts file." << std::endl;
+  }
+
+  try {
+    try {
+
+    } catch (...) {
+      std::throw_with_nested(std::runtime_error(error_message));
+    }
+  } catch (const std::exception &exception) {
+    print_exception(exception);
+  }
+
+  return;
+}
+
+
 /* Push configuration */
-void PushConfiguration(Configuration &settings, AccessPoint &target) {
+void PushConfig(libconfig::Config& config, AccessPoint& AP) {
+  std::string error_message     = "PushConfiguration() failed";
+
   ssh::Session session;
   std::string  no_ip_addr       = "No configured IPv4 or IPv6 address",
                host_key_changed = "Remote host key has changed, "
                                   "please remove the offending key",
                found_other_host = "Remote host public key not found"
                                   ", but another key exists!",
-               remote_error     = "Remote server error",
-               error_message    = "PushConfiguration() failed";
-  
+               remote_error     = "Remote server error";
+
   try {
-    std::string  remote_user    = settings.lookup(CFG_REMOTE_USER),
-                 cert_directory = settings.lookup(CFG_CERT_DIR),
-                 ip4            = target.IPv4Address(),
-                 ip6            = target.IPv6Address();
-    
-    if (ip4.empty() && ip6.empty()) {
-      throw std::runtime_error(no_ip_addr);
-    }
-
-    //SSH Session initial setup
-    if(ip4.empty()) { //TODO: make this default to 6 later
-      session.setOption(SSH_OPTIONS_HOST, target.IPv6Address().c_str());
-    } else { //should not execute right now
-      session.setOption(SSH_OPTIONS_HOST, ip4.c_str());
-    }
-   
-    session.setOption(SSH_OPTIONS_LOG_VERBOSITY, &LogLevel);
-    session.setOption(SSH_OPTIONS_USER, remote_user.c_str());
-    session.setOption(SSH_OPTIONS_SSH_DIR, cert_directory.c_str());
-    
-    //SSH Session connect
-    session.connect();
-    session.userauthPublickeyAuto();
-
-    switch (session.isServerKnown()) {
-      case SSH_SERVER_FILE_NOT_FOUND:
-      case SSH_SERVER_NOT_KNOWN:
-        session.writeKnownhost();
-      case SSH_SERVER_KNOWN_OK:
-        break; 
-
-      case SSH_SERVER_KNOWN_CHANGED:
-        throw std::runtime_error(host_key_changed);
-
-      case SSH_SERVER_FOUND_OTHER:
-        throw std::runtime_error(found_other_host);
-      
-      case SSH_SERVER_ERROR:
-        throw std::runtime_error(remote_error);
-      
-      default:
-        throw std::runtime_error(std::string("default"));
-    }
-
-    session.disconnect();
 
   } catch (const std::runtime_error &exception) {
     print_exception(exception);
+
   } catch (...) {
     std::throw_with_nested(std::runtime_error(error_message));
   }
@@ -295,9 +521,9 @@ void PushConfiguration(Configuration &settings, AccessPoint &target) {
   return;
 }
 
-/***********************************************************************
- * CONSOLE OUTPUT                                            [main-CO] *
- **********************************************************************/
+/******************************************************************************
+ * CONSOLE OUTPUT                                                   [main-CO] *
+ ******************************************************************************/
 
 /* Prints the command line help prompt */
 void Help() {
@@ -344,7 +570,7 @@ void Help() {
             << "Print program version" 
             << std::endl;
   
-  exit(EXIT_SUCCESS);
+  std::exit(EXIT_SUCCESS);
 }
 
 /* Prints the command line usage prompt */
@@ -364,7 +590,7 @@ void Usage() {
             << std::endl;
   
  
-  exit(EXIT_SUCCESS);
+  std::exit(EXIT_SUCCESS);
 }
 
 /* Prints the program version */
@@ -374,5 +600,67 @@ void Version() {
             << " William Patrick Millard <wmillard1@gmail.com>" 
             << std::endl;
   
-  exit(EXIT_SUCCESS);
+  std::exit(EXIT_SUCCESS);
+}
+
+/******************************************************************************
+ * PROGRAM MAIN                                                     [main-MA] *
+ ******************************************************************************/
+
+int main(int argc, char* argv[]) {
+  ssh_init();
+  std::atexit((void (*)())ssh_finalize);
+
+
+  try {
+    libconfig::Setting &pendingNodes = ParseCommandLineOptions(argc, argv);
+    libconfig::Config  &config       = ReadConfigFile(ConfigFile);
+
+    if (List) {
+      ListAPs(config);
+    
+    } else if (Add) {
+      for (auto AP : GetAddList(pendingNodes)) {
+        AddAPConfig(config, AP.second);
+        AddAPKey(config, AP.second);
+      }
+
+    } else if (Remove) {
+      for (auto AP : GetRemoveList(pendingNodes)) {
+        RemoveAPConfig(config, AP.second);
+//        RemoveAPKey(config, AP.second);
+      }
+    
+    } else if (Push) {
+      if (LogLevel >= kDefaultLogLevel) {
+        if (Force) {
+          std::cout << "wrt: Forcing update on all managed APs" << std::endl;
+        } else {
+          std::cout << "wrt: Updating APs not up to current" <<std::endl;
+        }
+      }
+
+      for (auto AP : GetAPList(config)) {
+        PushConfig(config, AP.second);
+      }
+
+    } else {
+      Usage();
+    }
+
+    if (LogLevel >= kVerboseLogLevel) {
+      std::cout << "wrt: Operation completed successfully." << std::endl;
+    }
+  
+  } catch (const std::exception &exception) {
+    print_exception(exception);
+    
+    if (LogLevel >= kVerboseLogLevel) {
+      std::cout << "wrt: Operation unsuccessful!" << std::endl;
+    }
+
+    std::exit(kExitFailure);
+  }
+
+  std::exit(kExitSuccess);
 }
