@@ -50,10 +50,8 @@ const auto kExitSuccess            = EXIT_SUCCESS,
 //Config defaults
 const auto kDefaultConfigFile("/etc/wrt/wrt.cfg");
 const auto kDefaultConfigDirectory("/etc/wrt/");
-
-const auto kDefaultRemoteConfigDirectory("/etc/config/");
+const auto kDefaultRemoteConfigDirectory("/etc/");
 const auto kDefaultCertDirectory("/etc/dropbear/");
-
 const auto kDefaultKeyType("id_dsa");
 const auto kDefaultInterface("eth0");
 
@@ -584,6 +582,51 @@ void WriteConfigFile(libconfig::Config &settings, std::string file)
  * UTILITY FUNCTIONS                                                [main-UT] *
  ******************************************************************************/
 
+std::string getTarget(AccessPoint &AP, bool brackets = false)
+{
+  std::string target;
+
+  if (AP.hasIPv4()) {
+    target += AP.getIPv4();
+
+  } else if (AP.hasIPv6()) {
+    if (brackets) {
+      target += '[';
+    }
+
+    target += AP.getIPv6();
+
+    if (brackets) {
+      target += ']';
+    }
+
+  } else if (AP.hasLinkLocalIPv6()) {
+    if (brackets) {
+      target += '[';
+    }
+
+    target += AP.getLinkLocalIPv6();
+    target += '%';
+    target += kDefaultInterface;
+
+    if (brackets) {
+      target += ']';
+    }
+  }
+
+  return target;
+}
+
+std::string SCPTarget(AccessPoint &AP)
+{
+  std::string target = getTarget(AP, true);
+
+  target += ':';
+  target += kDefaultRemoteConfigDirectory;
+
+  return target;
+}
+
 APList &GetAPList(libconfig::Config &config)
 {
   static APList APs;
@@ -905,16 +948,10 @@ void AddAPKey(AccessPoint &AP)
         close(STDIN_FILENO);
         close(STDERR_FILENO);
 
-        if (AP.hasIPv4()) {
-          execlp("ssh-keyscan", AP.getIPv4().c_str(), (char *)NULL);
-
-        } else if (AP.hasIPv6()) {
-          execlp("ssh-keyscan", AP.getIPv6().c_str(), (char *)NULL);
-
-        } else if (AP.hasLinkLocalIPv6()) {
-          execlp("ssh-keyscan", "ssh-keyscan",
-                 AP.getLinkLocalIPv6().append("\%eth0").c_str(), (char *)NULL);
-        }
+        execlp("ssh-keyscan",
+               "ssh-keyscan",
+               getTarget(AP).c_str(),
+               (char *)NULL);
 
         std::exit(kExitFailure);
       }
@@ -974,14 +1011,10 @@ void RemoveAPConfig(AccessPoint &AP)
       }
     }
 
-    WriteConfigFile(config);
-  }
-
-  catch (const std::exception &exception) {
+  } catch (const std::exception &exception) {
     print_exception(exception);
-  }
 
-  catch (...) {
+  } catch (...) {
     std::throw_with_nested(std::runtime_error(error_message));
   }
 
@@ -1071,35 +1104,6 @@ bool CheckConfig(AccessPoint &AP)
   return true;
 }
 
-std::string getTarget(AccessPoint &AP)
-{
-  std::string target;
-
-  if (AP.hasIPv4()) {
-    target += AP.getIPv4();
-    target += ':';
-    target += kDefaultRemoteConfigDirectory;
-
-  } else if (AP.hasIPv6()) {
-    target += '[';
-    target += AP.getIPv6();
-    target += ']';
-    target += ':';
-    target += kDefaultRemoteConfigDirectory;
-
-  } else if (AP.hasLinkLocalIPv6()) {
-    target += '[';
-    target += AP.getLinkLocalIPv6();
-    target += '%';
-    target += kDefaultInterface;
-    target += ']';
-    target += ':';
-    target += kDefaultRemoteConfigDirectory;
-  }
-
-  return target;
-}
-
 /**
  * Push configuration using fork, scp, and ssh
  *
@@ -1110,11 +1114,9 @@ std::string getTarget(AccessPoint &AP)
 void PushConfig(AccessPoint &AP)
 {
   std::string localConfig = State.lookup(kConfigDirectory);
-  std::string target(getTarget(AP));
-
   localConfig += "config";
-  target      += ':';
-  target      += kDefaultRemoteConfigDirectory;
+
+  std::cout << localConfig;
 
   execlp("scp",
          "scp",
@@ -1122,7 +1124,7 @@ void PushConfig(AccessPoint &AP)
          "/etc/wrt/ssh_config",
          "-pr",
          localConfig.c_str(),
-         target.c_str(),
+         SCPTarget(AP).c_str(),
          (char *)NULL);
 
   std::exit(kExitFailure);
@@ -1130,21 +1132,20 @@ void PushConfig(AccessPoint &AP)
 
 void PushWirelessConfig(AccessPoint &AP)
 {
-  std::string target(getTarget(AP)),
-      command("uci set wireless.@wifi-device[0].disabled=0;");
+  std::string command, target(getTarget(AP));
+
   std::string ssid   = State.lookup(kSSID),
               crypto = State.lookup(kCrypto),
               secret = State.lookup(kPassword);
 
-  command += "uci set wireless.@wifi-iface[0].ssid= ";
+  command += "uci set wireless.@wifi-device[0].disabled=0";
+  command += ";uci set wireless.@wifi-iface[0].ssid=";
   command += ssid;
-  command += ';';
-  command += "uci set wireless.@wifi-iface[0].encryption= ";
+  command += ";uci set wireless.@wifi-iface[0].encryption=";
   command += crypto;
-  command += ';';
-  command += "uci set wireless.@wifi-iface[0].key= ";
+  command += ";uci set wireless.@wifi-iface[0].key=";
   command += secret;
-  command += ";uci commit wireless";
+
 
   execlp("ssh",
          "ssh",
@@ -1160,7 +1161,15 @@ void PushWirelessConfig(AccessPoint &AP)
 void CommitConfig(AccessPoint &AP)
 {
   std::string target(getTarget(AP));
-  auto        command = "uci commit; wifi up";
+  auto command =  "uci commit dhcp;"
+                  "uci commit 6relayd;"
+                  "uci commit dropbear;"
+                  "uci commit firewall;"
+                  "uci commit network;"
+                  "uci commit ubootenv;"
+                  "uci commit wireless;"
+                  "wifi down;"
+                  "wifi up";
 
   execlp("ssh",
          "ssh",
@@ -1262,7 +1271,7 @@ void Usage()
  */
 void Version()
 {
-  std::cout << "WRT 0.2" << std::endl;
+  std::cout << "WRT 0.2-beta" << std::endl;
   std::cout << "Copyright 2013"
             << " William Patrick Millard <wmillard1@gmail.com>"
             << std::endl;
