@@ -1,3 +1,6 @@
+6relayd:
+	@echo "WRT: WARNING: NO DEFAULT 6RELAYD CONFIG FILE, MAKING EMPTY FILE"
+	touch ./6relayd
 dhcp:
 	@echo "WRT: WARNING: NO DEFAULT DHCP CONFIG FILE, MAKING EMPTY FILE"
 	touch ./dhcp
@@ -10,12 +13,6 @@ dropbear:
 firewall:
 	@echo "WRT: WARNING: NO DEFAULT FIREWALL CONFIG FILE, MAKING EMPTY FILE"
 	touch ./firewall
-network:
-	@echo "WRT: WARNING: NO DEFAULT NETWORK CONFIG FILE, MAKING EMPTY FILE"
-	touch ./network
 radvd:
 	@echo "WRT: WARNING: NO DEFAULT RADVD CONFIG FILE, MAKING EMPTY FILE"
 	touch ./radvd
-system:
-	@echo "WRT: WARNING: NO DEFAULT SYSTEM CONFIG FILE, MAKING EMPTY FILE"
-	touch ./system

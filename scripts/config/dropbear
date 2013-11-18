@@ -1,5 +1,7 @@
 
 config dropbear
+# Ideally, we would turn passwordauth OFF, but I am still testing stability
+#	option PasswordAuth 'off'
 	option PasswordAuth 'on'
-	option GatewayPorts '1'
+	option Port '22'
 

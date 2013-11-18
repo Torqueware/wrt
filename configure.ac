@@ -88,7 +88,6 @@ AC_CONFIG_FILES([Makefile
                  scripts/Makefile
                  scripts/cert/Makefile
                  scripts/config/Makefile
-                 scripts/radio/Makefile
                  scripts/wrt-image/Makefile
                  src/Makefile
                  src/include/Makefile

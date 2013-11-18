@@ -1161,16 +1161,15 @@ void PushWirelessConfig(AccessPoint &AP)
 void CommitConfig(AccessPoint &AP)
 {
   std::string target(getTarget(AP));
-  auto command =  "uci commit dhcp;"
-                  "uci commit 6relayd;"
-                  "uci commit dropbear;"
-                  "uci commit firewall;"
-                  "uci commit network;"
-                  "uci commit ubootenv;"
-                  "uci commit wireless;"
-                  "wifi down;"
-                  "wifi up";
-
+  auto command = "uci commit dhcp;"
+                 "uci commit 6relayd;"
+                 "uci commit dropbear;"
+                 "uci commit firewall;"
+                 "uci commit network;"
+                 "uci commit ubootenv;"
+                 "uci commit wireless;"
+                 "wifi down;"
+                 "wifi up";
   execlp("ssh",
          "ssh",
          "-F",

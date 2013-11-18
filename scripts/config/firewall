@@ -1,7 +1,12 @@
-
 config defaults
-	option syn_flood '1'
-	option input 'ACCEPT'
-	option output 'ACCEPT'
-	option forward 'ACCEPT'
+	option synflood_protect	1
+	option input		ACCEPT
+	option output		ACCEPT
+	option forward		ACCEPT
+	accept_redirects	1
+	accept_source_route	1
 
+# Uncomment this line to disable ipv6 rules
+#	option disable_ipv6	1
+# Uncomment line to enable invalid msg
+#	option drop_invalid	1
