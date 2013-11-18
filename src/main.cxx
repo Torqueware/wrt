@@ -112,6 +112,7 @@ static void RemoveAPKey(AccessPoint &AP);
 static bool CheckConfig(AccessPoint &AP);
 static void PushConfig(AccessPoint &AP);
 static void PushWirelessConfig(AccessPoint &AP);
+static void CommitConfig(AccessPoint &AP);
 
 //Command line output functions / command blocks
 static void Help();
@@ -284,6 +285,17 @@ int main(int argc, char *argv[])
 
           } else {
             PushWirelessConfig(AP.second);
+          }
+
+          if ((child = ForkChild())) {
+            if ((status = WaitForChild(child))) {
+              wout << Output::Verbosity::kDebug
+                   << "Subprocess " << child << ": Exited with status "
+                   << status << std::endl;
+            }
+
+          } else {
+            CommitConfig(AP.second);
           }
         }
 
