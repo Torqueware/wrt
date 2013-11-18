@@ -1132,11 +1132,18 @@ void PushConfig(AccessPoint &AP)
 
 void PushWirelessConfig(AccessPoint &AP)
 {
-  std::string command, target(getTarget(AP));
+  std::string command("uci set system.hostname="),
+      target(getTarget(AP)),
+      ssid   = State.lookup(kSSID),
+      crypto = State.lookup(kCrypto),
+      secret = State.lookup(kPassword);
 
-  std::string ssid   = State.lookup(kSSID),
-              crypto = State.lookup(kCrypto),
-              secret = State.lookup(kPassword);
+  if (AP.hasName()) {
+    command += AP.getName();
+    command += ';';
+  } else {
+    command.clear();
+  }
 
   command += "uci set wireless.@wifi-device[0].disabled=0";
   command += ";uci set wireless.@wifi-iface[0].ssid=";
