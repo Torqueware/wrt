@@ -1,0 +1,23 @@
+
+# This is the wrt client  configuration file. 
+# See ssh_config(5) for more information. 
+
+# This file provides defaults for wrt, and some values can be
+# changed on the command line.
+
+Host *
+   AddressFamily any
+   BatchMode yes
+   Protocol 2
+   PubkeyAuthentication yes
+   StrictHostKeyChecking yes
+   IdentityFile /etc/wrt/id_ecdsa
+   IdentityFile /etc/wrt/id_rsa
+   IdentityFile /etc/wrt/id_dsa
+   Port 22
+   ConnectionAttempts 3
+   User root
+   UserKnownHostsFile /etc/wrt/known_hosts
+   SendEnv LANG LC_*
+   GSSAPIAuthentication yes
+   GSSAPIDelegateCredentials no
