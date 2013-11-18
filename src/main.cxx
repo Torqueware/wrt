@@ -236,6 +236,7 @@ int main(int argc, char *argv[])
           }
 
         } else {
+
           RemoveAPKey(AP.second);
         }
 
@@ -263,17 +264,6 @@ int main(int argc, char *argv[])
 
           } else {
             PushConfig(AP.second);
-          }
-
-          if ((child = ForkChild())) {
-            if ((status = WaitForChild(child))) {
-              wout << Output::Verbosity::kDebug
-                   << "Subprocess " << child << ": Exited with status "
-                   << status << std::endl;
-            }
-
-          } else {
-            PushWirelessConfig(AP.second);
           }
 
           if ((child = ForkChild())) {
