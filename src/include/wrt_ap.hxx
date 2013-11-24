@@ -15,6 +15,7 @@
 #ifndef LIBWRT_ACCESS_POINT_H_
 #define LIBWRT_ACCESS_POINT_H_
 
+#include <string>
 #include <cstdlib>
 #include <algorithm>
 #include <cstring>
@@ -22,9 +23,14 @@
 #include <sstream>
 #include <unordered_map>
 
-
 namespace wrt
 {
+
+//Default Constants
+const std::string kNoName("No Name");
+const std::string kNoMAC("00:00:00:00:00:00");
+const std::string kNoIPv4("0.0.0.0");
+const std::string kNoIPv6("::0");
 
 class AccessPoint
 {
@@ -43,55 +49,118 @@ public:
   AccessPoint(const char *MACAddress);
   AccessPoint(std::string Name, std::string MACAddress);
   AccessPoint(const char *Name, const char *MACAddress);
-  AccessPoint(std::string Name, std::string MACAddress, AccessPoint::Type Type);
-  AccessPoint(const char *Name, const char *MACAddress, AccessPoint::Type Type);
   AccessPoint(std::string Name, std::string MACAddress, std::string Type);
   AccessPoint(const char *Name, const char *MACAddress, const char *Type);
-
-  bool hasMAC();
-  bool hasName();
-  bool hasType();
-  bool hasIPv4();
-  bool hasIPv6();
-  bool hasLinkLocalIPv4();
-  bool hasLinkLocalIPv6();
-
-  std::string getName();
-  std::string getMAC();
-
-  std::string getType();
-  AccessPoint::Type getEnumType();
-
-
-  std::string autoIPv4(); //DEPRICATE
-  std::string autoIPv6(); //DEPRICATE
-
-  std::string getIPv4();
-  std::string getIPv6();
-  std::string getLinkLocalIPv4();
-  std::string getLinkLocalIPv6();
-
-  AccessPoint::Type getRawType(); //TODO: DEPRICATE
-
-
-  void        setIPv4(std::string address);
-  void        setIPv6(std::string address);
-
-  void        setType(AccessPoint::Type type);
-  void        setType(std::string type);
-
-  //DEPRICATE
-  std::string IPv4Address();
-  std::string IPv6Address();
 
   //Comparator
   int compare(AccessPoint const &ap);
 
-  //Static utility functions
+  //static helper functions
   static void FormatMAC(std::string &MACtoFormat);
   static void MACtoEUI64(std::string &MACtoMutate);
   static std::string TypeToString(AccessPoint::Type Type);
   static AccessPoint::Type StringToType(std::string type);
+
+  //getter and setter inlines
+  inline bool hasMAC()
+  {
+    return mac_address_ != kNoMAC;
+  }
+
+  inline bool hasName()
+  {
+    return ap_name_ != kNoName;
+  }
+
+  inline bool hasType()
+  {
+    return ap_type_ != Type::none;
+  }
+
+  inline bool hasIPv4()
+  {
+    return ipv4_address_ != kNoIPv4;
+  }
+
+  inline bool hasIPv6()
+  {
+    return ipv6_address_ != kNoIPv6;
+  }
+
+  inline bool hasLinkLocalIPv4()
+  {
+    return link_local_ipv4_address_ != kNoIPv4;
+  }
+
+  inline bool hasLinkLocalIPv6()
+  {
+    return link_local_ipv6_address_ != kNoIPv6;
+  }
+
+  inline bool hasAddress()
+  {
+    return hasIPv4() || hasIPv6() || hasLinkLocalIPv4() || hasLinkLocalIPv6();
+  }
+
+  inline std::string getName()
+  {
+    return ap_name_;
+  }
+
+  inline std::string getMAC()
+  {
+    return mac_address_;
+  }
+
+  inline std::string getType()
+  {
+    return TypeToString(ap_type_);
+  }
+
+  inline AccessPoint::Type getEnumType()
+  {
+    return ap_type_;
+  }
+
+  inline std::string getIPv4()
+  {
+    return ipv4_address_;
+  }
+
+  inline std::string getIPv6()
+  {
+    return ipv6_address_;
+  }
+
+  inline std::string getLinkLocalIPv4()
+  {
+    return link_local_ipv4_address_;
+  }
+
+  inline std::string getLinkLocalIPv6()
+  {
+    return link_local_ipv6_address_;
+  }
+
+  inline void setIPv4(std::string address)
+  {
+    ipv4_address_ = address;
+  }
+
+  inline void setIPv6(std::string address)
+  {
+    ipv6_address_ = address;
+  }
+
+  inline void setType(AccessPoint::Type type)
+  {
+    ap_type_ = type;
+  }
+
+  inline void setType(std::string type)
+  {
+    setType(StringToType(type));
+  }
 
   bool operator == (AccessPoint const &ap)
   {
@@ -114,13 +183,14 @@ public:
   }
 
 private:
-  AccessPoint::Type ap_type_                 = Type::none;
-  std::string       ap_name_                 = "",
-                    mac_address_             = "00:00:00:00:00:00",
-                    ipv4_address_            = "0.0.0.0",
-                    link_local_ipv4_address_ = "0.0.0.0",
-                    ipv6_address_            = "::0",
-                    link_local_ipv6_address_ = "::0";
+  Type ap_type_                        = Type::none;
+
+  std::string ap_name_                 = kNoName;
+  std::string mac_address_             = kNoMAC;
+  std::string ipv4_address_            = kNoIPv4;
+  std::string link_local_ipv4_address_ = kNoIPv4;
+  std::string ipv6_address_            = kNoIPv6;
+  std::string link_local_ipv6_address_ = kNoIPv6;
 };
 
 }
