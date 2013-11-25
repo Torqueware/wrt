@@ -27,7 +27,7 @@ namespace wrt
 {
 
 /**
- * Default constants to initialize the AccessPoint class
+ * Default constant strings to initialize the AccessPoint class with
  *
  * kNoName - Default name
  * kNoMAC  - Default MAC address
@@ -55,7 +55,7 @@ public:
   };
 
   /**
-   * Constructors for AccessPoint
+   * Constructors for AccessPoint - taking various parameters
    */
   AccessPoint() = default;
   AccessPoint(std::string MACAddress);
@@ -77,10 +77,45 @@ public:
    */
   int compare(AccessPoint const &ap);
 
-  //static helper functions
+  /**
+   * Formats a MAC address to be properly formatted - mutates string given
+   *
+   * @method  FormatMAC
+   *
+   * @param   MACtoFormat  MAC string to format
+   */
   static void FormatMAC(std::string &MACtoFormat);
+
+  /**
+   * Formats a MAC address into a EUI64 compliant IPv6 stateless address
+   * - mutates given string
+   *
+   * @method  MACtoEUI64
+   *
+   * @param   MACtoMutate  MAC string to format
+   */
   static void MACtoEUI64(std::string &MACtoMutate);
+
+  /**
+   * Returns a AccessPoint::Type in string form
+   *
+   * @method  TypeToString
+   *
+   * @param   Type          Enum to return in string form
+   *
+   * @return                String form of enum given
+   */
   static std::string TypeToString(AccessPoint::Type Type);
+
+  /**
+   * Returns a AccessPoint::Type in enum form
+   *
+   * @method  StringToType
+   *
+   * @param   type          String type to return in enum form
+   *
+   * @return                Enum form of given string
+   */
   static AccessPoint::Type StringToType(std::string type);
 
   /**
@@ -124,7 +159,7 @@ public:
   }
 
   /**
-   * [hasIPv4 description]
+   * Returns whether the object has a IPv4 address
    *
    * @method  hasIPv4
    *
@@ -136,7 +171,7 @@ public:
   }
 
   /**
-   * [hasIPv6 description]
+   * Returns whether the object has a IPv6 address
    *
    * @method  hasIPv6
    *
@@ -148,7 +183,7 @@ public:
   }
 
   /**
-   * [hasLinkLocalIPv4 description]
+   * Returns whether the object has a link local IPv4 address
    *
    * @method  hasLinkLocalIPv4
    *
@@ -160,7 +195,7 @@ public:
   }
 
   /**
-   * [hasLinkLocalIPv6 description]
+   * Returns whether the object has a link local IPv6 address
    *
    * @method  hasLinkLocalIPv6
    *
@@ -172,7 +207,7 @@ public:
   }
 
   /**
-   * [hasAddress description]
+   * Returns whether the object has a network address
    *
    * @method  hasAddress
    *
@@ -184,11 +219,11 @@ public:
   }
 
   /**
-   * [getName description]
+   * Accessor method to get the AP name
    *
    * @method  getName
    *
-   * @return  [description]
+   * @return  AP name in string format
    */
   inline std::string getName()
   {
@@ -196,11 +231,11 @@ public:
   }
 
   /**
-   * [getMAC description]
+   * Accessor to get the MAC address
    *
    * @method  getMAC
    *
-   * @return  [description]
+   * @return  MAC address in string format
    */
   inline std::string getMAC()
   {
@@ -208,11 +243,11 @@ public:
   }
 
   /**
-   * [getType description]
+   * Accessor to get the string type
    *
    * @method  getType
    *
-   * @return  [description]
+   * @return  the type in string format
    */
   inline std::string getType()
   {
@@ -220,11 +255,11 @@ public:
   }
 
   /**
-   * [getEnumType description]
+   * Accessor to get the enum type
    *
    * @method  getEnumType
    *
-   * @return  [description]
+   * @return  the type in enum format
    */
   inline AccessPoint::Type getEnumType()
   {
@@ -232,11 +267,11 @@ public:
   }
 
   /**
-   * [getIPv4 description]
+   * Accessor to get the IPv4 address for a given AP
    *
    * @method  getIPv4
    *
-   * @return  [description]
+   * @return  the IPv4 in string format
    */
   inline std::string getIPv4()
   {
@@ -244,11 +279,11 @@ public:
   }
 
   /**
-   * [getIPv6 description]
+   * Accessor to get the IPv6 address for a given AP
    *
    * @method  getIPv6
    *
-   * @return  [description]
+   * @return  the IPv6 in string format
    */
   inline std::string getIPv6()
   {
@@ -256,11 +291,11 @@ public:
   }
 
   /**
-   * [getLinkLocalIPv4 description]
+   * Accessor to get the link local IPv4 for a given AP
    *
    * @method  getLinkLocalIPv4
    *
-   * @return  [description]
+   * @return  the link local IPv4 in string format
    */
   inline std::string getLinkLocalIPv4()
   {
@@ -268,11 +303,11 @@ public:
   }
 
   /**
-   * [getLinkLocalIPv6 description]
+   * Accessor to get the link local IPv6 for a given AP
    *
    * @method  getLinkLocalIPv6
    *
-   * @return  [description]
+   * @return  the link local IPv6 in string format
    */
   inline std::string getLinkLocalIPv6()
   {
@@ -280,11 +315,11 @@ public:
   }
 
   /**
-   * [setIPv4 description]
+   * AP mutator to set the IPv4 address by string
    *
    * @method  setIPv4
    *
-   * @param   address  [description]
+   * @param   address  the string to set as the IPv4 address
    */
   inline void setIPv4(std::string address)
   {
@@ -292,11 +327,11 @@ public:
   }
 
   /**
-   * [setIPv6 description]
+   * AP mutator to set the IPv6 address by string
    *
    * @method  setIPv6
    *
-   * @param   address  [description]
+   * @param   address  the string to set as the IPv6 address
    */
   inline void setIPv6(std::string address)
   {
@@ -304,11 +339,11 @@ public:
   }
 
   /**
-   * [setType description]
+   * AP mutator to set the type by AccessPoint::Type enum
    *
    * @method  setType
    *
-   * @param   type     [description]
+   * @param   type     AccessPoint::Type to set as the type
    */
   inline void setType(AccessPoint::Type type)
   {
@@ -316,11 +351,11 @@ public:
   }
 
   /**
-   * [setType description]
+   * AP mutator to set the type by string
    *
    * @method  setType
    *
-   * @param   type     [description]
+   * @param   type     string to set as the type
    */
   inline void setType(std::string type)
   {
@@ -361,24 +396,28 @@ public:
 
 private:
   /**
-   * AccessPoint type enum for current object
+   * AccessPoint internal enum - AP's type
    */
-  Type ap_type_                        = Type::none;
+  Type ap_type_ = Type::none;
 
   /**
    * AccessPoint internal string - AP's name
    */
-  std::string ap_name_                 = kNoName;
+  std::string ap_name_ = kNoName;
   /**
-   * AccessPoint internal string - MAC address
+   * AccessPoint internal string - AP's MAC address
    */
-  std::string mac_address_             = kNoMAC;
+  std::string mac_address_ = kNoMAC;
+
   /**
-   *
+   * AccessPoint internal string - AP's IPv4 addresses
    */
   std::string ipv4_address_            = kNoIPv4;
   std::string link_local_ipv4_address_ = kNoIPv4;
 
+  /**
+   * AccessPoint internal string - AP's IPv6 addresses
+   */
   std::string ipv6_address_            = kNoIPv6;
   std::string link_local_ipv6_address_ = kNoIPv6;
 };

@@ -13,6 +13,9 @@
 namespace wrt
 {
 
+/**
+ * Constructor for AccessPoint - takes only a MAC address
+ */
 AccessPoint::AccessPoint(std::string MACAddress)
 {
   ap_type_     = Type::none;
@@ -24,6 +27,9 @@ AccessPoint::AccessPoint(std::string MACAddress)
   MACtoEUI64(link_local_ipv6_address_);
 }
 
+/**
+ * Constructor for AccessPoint - takes only a MAC address
+ */
 AccessPoint::AccessPoint(const char *MACAddress)
 {
   ap_type_     = Type::none;
@@ -35,6 +41,9 @@ AccessPoint::AccessPoint(const char *MACAddress)
   MACtoEUI64(link_local_ipv6_address_);
 }
 
+/**
+ * Constructor for AccessPoint - takes a MAC address and a name
+ */
 AccessPoint::AccessPoint(std::string Name, std::string MACAddress)
 {
   ap_type_     = Type::none;
@@ -47,6 +56,9 @@ AccessPoint::AccessPoint(std::string Name, std::string MACAddress)
   MACtoEUI64(link_local_ipv6_address_);
 }
 
+/**
+ * Constructor for AccessPoint - takes a MAC address and a name
+ */
 AccessPoint::AccessPoint(const char *Name, const char *MACAddress)
 {
   ap_type_     = Type::none;
@@ -59,6 +71,9 @@ AccessPoint::AccessPoint(const char *Name, const char *MACAddress)
   MACtoEUI64(link_local_ipv6_address_);
 }
 
+/**
+ * Constructor for AccessPoint - takes a MAC address, a name, and type
+ */
 AccessPoint::AccessPoint(std::string Name,
                          std::string MACAddress,
                          std::string Type)
@@ -73,6 +88,9 @@ AccessPoint::AccessPoint(std::string Name,
   MACtoEUI64(link_local_ipv6_address_);
 }
 
+/**
+ * Constructor for AccessPoint - takes a MAC address, a name, and (enum) type
+ */
 AccessPoint::AccessPoint(const char *Name,
                          const char *MACAddress,
                          const char *Type)
@@ -87,6 +105,17 @@ AccessPoint::AccessPoint(const char *Name,
   MACtoEUI64(link_local_ipv6_address_);
 }
 
+
+/**
+ * Comparator function for the AccessPoint class
+ *
+ * @method  compare
+ *
+ * @param   ap       The other AP to compare this AP to
+ *
+ * @return           indicates whether this AP is greater than (>0),
+ *                   less than (<0), or equal to (0) the given AP
+ */
 int AccessPoint::compare(AccessPoint const &ap)
 {
   if (ap_name_ == mac_address_) {
@@ -96,6 +125,13 @@ int AccessPoint::compare(AccessPoint const &ap)
   return ap_name_.compare(ap.ap_name_);
 }
 
+/**
+ * Formats a MAC address to be properly formatted - mutates string given
+ *
+ * @method  FormatMAC
+ *
+ * @param   MACtoFormat  MAC string to format
+ */
 void AccessPoint::FormatMAC(std::string &MACtoFormat)
 {
   if (MACtoFormat.empty()) {
@@ -114,6 +150,14 @@ void AccessPoint::FormatMAC(std::string &MACtoFormat)
   return;
 }
 
+/**
+ * Formats a MAC address into a EUI64 compliant IPv6 stateless address
+ * - mutates given string
+ *
+ * @method  MACtoEUI64
+ *
+ * @param   MACtoMutate  MAC string to format
+ */
 void AccessPoint::MACtoEUI64(std::string &MACtoMutate)
 {
   if (MACtoMutate.empty()) {
@@ -156,6 +200,15 @@ void AccessPoint::MACtoEUI64(std::string &MACtoMutate)
   return;
 }
 
+/**
+ * Returns a AccessPoint::Type in string form
+ *
+ * @method  TypeToString
+ *
+ * @param   Type          Enum to return in string form
+ *
+ * @return                String form of enum given
+ */
 std::string AccessPoint::TypeToString(AccessPoint::Type Type)
 {
   switch (Type) {
@@ -179,6 +232,15 @@ std::string AccessPoint::TypeToString(AccessPoint::Type Type)
   }
 }
 
+/**
+ * Returns a AccessPoint::Type in enum form
+ *
+ * @method  StringToType
+ *
+ * @param   type          String type to return in enum form
+ *
+ * @return                Enum form of given string
+ */
 AccessPoint::Type AccessPoint::StringToType(std::string type)
 {
   static std::unordered_map<std::string, AccessPoint::Type> getEnum = {
