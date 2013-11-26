@@ -1202,47 +1202,57 @@ void CommitConfig(AccessPoint &AP)
 void Help()
 {
   std::cout << "Usage: wrt [OPTION...]"
-            << std::endl;
+            << std::endl << std::endl;
 
-  std::cout << "  -c <FILE>\t--config <FILE>\t"
-            << "Manually specify configuration file."
-            << std::endl;
+  std::cout << "  -c <FILE>"
+            << "\t--config <FILE>"
+            << "\tManually specify configuration file."
+            << std::endl << std::endl;
 
-  std::cout << "  -l\t\t--list\t\t"
-            << "List managed access points."
-            << std::endl;
+  std::cout << "  -l"
+            << "\t\t--list"
+            << "\t\tList managed access points."
+            << std::endl << std::endl;
 
-  std::cout << "  -a <AP>\t--add <AP>\t"
-            << "Add an AP for WRT to manage."
-            << std::endl;
+  std::cout << "  -a <AP Name> <AP MAC>" << std::endl;
+  std::cout << "  --add <AP Name> <AP MAC>"
+            << "\tAdd an AP for WRT to manage."
+            << std::endl << std::endl;
 
-  std::cout << "  -r <AP>\t--remove <AP>\t"
-            << "Remove an AP from managed devices"
-            << std::endl;
+  std::cout << "  -r <AP Name> | <AP MAC>" << std::endl;
+  std::cout << "  --remove <AP Name> | <AP MAC>"
+            << "\tRemove an AP from managed devices"
+            << std::endl << std::endl;
 
-  std::cout << "  -p\t\t--push\t\t"
-            << "Update configs on managed access points."
-            << std::endl;
+  std::cout << "  -p"
+            << "\t\t--push"
+            << "\t\tUpdate configs on managed access points."
+            << std::endl << std::endl;
 
-  std::cout << "  -u\t\t--usage\t\t"
-            << "Give a short usage message"
-            << std::endl;
+  std::cout << "  -u"
+            << "\t\t--usage"
+            << "\t\tGive a short usage message"
+            << std::endl << std::endl;
 
-  std::cout << "  -v\t\t--verbose\t"
-            << "Request detailed program responses"
-            << std::endl;
+  std::cout << "  -v"
+            << "\t\t--verbose"
+            << "\tRequest detailed program responses"
+            << std::endl << std::endl;
 
-  std::cout << "  -b\t\t--brief\t\t"
-            << "Request concise program responses"
-            << std::endl;
+  std::cout << "  -b"
+            << "\t\t--brief"
+            << "\t\tRequest concise program responses"
+            << std::endl << std::endl;
 
-  std::cout << "  -h\t\t--help\t\t"
-            << "Give this help list"
-            << std::endl;
+  std::cout << "  -h"
+            << "\t\t--help"
+            << "\t\tGive this help list"
+            << std::endl << std::endl;
 
-  std::cout << "  -V\t\t--version\t"
-            << "Print program version"
-            << std::endl;
+  std::cout << "  -V"
+            << "\t\t--version"
+            << "\tPrint program version"
+            << std::endl << std::endl;
 
   std::exit(kExitSuccess);
 }
@@ -1254,20 +1264,14 @@ void Help()
  */
 void Usage()
 {
-  std::cout << "Usage: wrt\t[-lpuvbhV]"
-            << std::endl;
-
-  std::cout << "\t\t[-c <CONFIG FILE>] [-a <AP NAME>] [-r <AP_NAME>]"
-            << std::endl;
-
-  std::cout << "\t\t[--config <CONFIG FILE> [--add <AP NAME>] "
-            << "[--remove <AP_NAME>]"
-            << std::endl;
-
-  std::cout << "\t\t[--list] [--push] [--verbose] [--brief] [--usage] "
-            << "[--help]"
-            << std::endl;
-
+  std::cout << "Usage: wrt\t[-lpuvbhV]" << std::endl;
+  std::cout << "\t\t[--list] [--push] [--usage] [--verbose]" << std::endl;
+  std::cout << "\t\t[--brief] [--help] [--version]" << std::endl;
+  std::cout << "\t\t[-c <CONFIG FILE>] [--config <CONFIG FILE>]" << std::endl;
+  std::cout << "\t\t[-a <AP NAME> <AP MAC>]"
+            << " [--add <AP NAME> <AP MAC>]" << std::endl;
+  std::cout << "\t\t[-r <AP NAME> | <AP MAC>]"
+            << " [--remove <AP NAME> | <AP MAC>]" << std::endl;
 
   std::exit(kExitSuccess);
 }

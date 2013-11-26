@@ -3,8 +3,8 @@
  *                                                                            *
  * Copyright 2013 William Patrick Millard <wmillard1@gmail.com>               *
  *                                                                            *
- * Implementation specific constructors, static helper functions, and other   *
- * fun things for the wrt_ap.hxx header file.                                 *
+ * Implementation of specific constructors, static helper functions, and      *
+ * other fun things for the wrt_ap.hxx header file.                           *
  *                                                                            *
  ******************************************************************************/
 

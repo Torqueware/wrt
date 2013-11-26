@@ -5,8 +5,8 @@
  *                                                                            *
  * This file is an object designed to organize a single remote access         *
  * point's info to be used for later use - namely:                            *
- *   o. To organize individual access point information by object.            *
- *   o. To use these individual listings to establish ssh sessions.           *
+ *   x. To organize individual access point information by object.            *
+ *   x. To use these individual listings to establish ssh sessions.           *
  *   o. To keep a history of individual logs. (FUTURE)                        *
  *   o. To create a record of based on individual statistics (SUPER FUTURE)   *
  *                                                                            *
