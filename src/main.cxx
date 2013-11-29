@@ -40,7 +40,7 @@
 using namespace wrt;
 
 //typedef for hash list of APs known
-typedef std::unordered_map<std::string, AccessPoint> APList;
+//typedef std::unordered_map<std::string, AccessPoint> APList;
 
 //Exit codes
 const auto kExitSuccess            = EXIT_SUCCESS,

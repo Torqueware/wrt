@@ -126,6 +126,24 @@ int AccessPoint::compare(AccessPoint const &ap)
 }
 
 /**
+ * Accessor that returns a vector list of std::strings holding addresses
+ *
+ * @method  getAddresses
+ *
+ * @return  A typedef'd list of vector type containing all AP addresses
+ */
+AddressList AccessPoint::getAddresses()
+{
+  std::vector<std::string> addresses;
+
+  if (hasIPv4()) { addresses.push_back(getIPv4()); }
+  if (hasIPv6()) { addresses.push_back(getIPv6()); }
+  if (hasLinkLocalIPv6()) { addresses.push_back(getLinkLocalIPv6()); }
+
+  return addresses;
+}
+
+/**
  * Formats a MAC address to be properly formatted - mutates string given
  *
  * @method  FormatMAC

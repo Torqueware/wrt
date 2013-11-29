@@ -22,9 +22,15 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
 namespace wrt
 {
+
+/**
+ * typedef for list of valid AP addresses
+ */
+typedef std::vector<std::string> AddressList;
 
 /**
  * Default constant strings to initialize the AccessPoint class with
@@ -54,9 +60,9 @@ public:
     whr_hp_g300n,
   };
 
-  /**
-   * Constructors for AccessPoint - taking various parameters
-   */
+  /****************************************************************************
+   * Constructors for AccessPoint - which take various parameters             *
+   ****************************************************************************/
   AccessPoint() = default;
   AccessPoint(std::string MACAddress);
   AccessPoint(const char *MACAddress);
@@ -118,9 +124,9 @@ public:
    */
   static AccessPoint::Type StringToType(std::string type);
 
-  /**
-   * Getter and setter inline functions
-   */
+  /****************************************************************************
+   * Getter and setter functions                                              *
+   ****************************************************************************/
 
   /**
    * Returns whether the object has a specified MAC address
@@ -315,6 +321,15 @@ public:
   }
 
   /**
+   * Accessor that returns a vector list of std::strings holding addresses
+   *
+   * @method  getAddresses
+   *
+   * @return  A typedef'd list of vector type containing all AP addresses
+   */
+  AddressList getAddresses();
+
+  /**
    * AP mutator to set the IPv4 address by string
    *
    * @method  setIPv4
@@ -421,6 +436,11 @@ private:
   std::string ipv6_address_            = kNoIPv6;
   std::string link_local_ipv6_address_ = kNoIPv6;
 };
+
+/**
+ * typedef for hash list of APs known.
+ */
+typedef std::unordered_map<std::string, AccessPoint> APList;
 
 }
 
