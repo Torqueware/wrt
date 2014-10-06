@@ -1,5 +1,5 @@
-SUBDIRS = wrt 
-#         ssh
+SUBDIRS = wrt .
+
 noinst_LTLIBRARIES = libwrt.la
 libwrt_la_SOURCES = 
 #libssh_la_SOURCES =
