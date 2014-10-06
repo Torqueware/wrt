@@ -1,1 +1,4 @@
 TODO: Write a README
+
+Dependencies: ssh, libconfig
+Build Dependencies: GNU Autotools, libconfig, g++, others
