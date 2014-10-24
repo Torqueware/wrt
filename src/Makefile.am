@@ -1,7 +1,7 @@
-SUBDIRS = include lib
+SUBDIRS = include lib .
 
 bin_PROGRAMS = wrt
-wrt_SOURCES  = main.cxx main.hxx
+wrt_SOURCES  = main.cxx
 wrt_LDADD    = lib/libwrt.la -lconfig++ -L/usr/lib
 
 WRTd:

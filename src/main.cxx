@@ -36,6 +36,7 @@
 #include <wrt_ap.hxx>
 #include <wrt_io.hxx>
 #include <wrt_exception.hxx>
+//#include <wrt_config.hxx>
 
 using namespace wrt;
 
@@ -134,7 +135,7 @@ namespace
 {
 APList PendingNodes;
 
-auto ConfigFile(kDefaultConfigFile);  //make this an extern also
+auto ConfigFile(kDefaultConfigFile);
 libconfig::Config State;              //make this extern later
 
 auto    Push   = false,
